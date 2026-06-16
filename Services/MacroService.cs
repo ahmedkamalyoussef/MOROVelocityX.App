@@ -20,6 +20,8 @@ public class MacroService : IDisposable
     private readonly bool _isLinux;
     private static readonly string YdotoolSocket = "/tmp/ydotool.sock";
 
+    public StatsService? StatsService { get; set; }
+
     public event EventHandler<bool>? MacroStatusChanged;
     public event EventHandler<string>? MacroError;
 
@@ -264,6 +266,8 @@ public class MacroService : IDisposable
                 clickKey = _clickKey;
                 isToggleMode = _isToggleMode;
             }
+
+            StatsService?.RecordClick();
 
             if (_isWindows)
             {

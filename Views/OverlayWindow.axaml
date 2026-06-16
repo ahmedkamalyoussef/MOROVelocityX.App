@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MOROVelocityX.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="MOROVelocityX.Views.OverlayWindow"
+        x:DataType="vm:OverlayViewModel"
+        Title="MORO Overlay"
+        Width="{Binding WindowWidth}"
+        Height="{Binding WindowHeight}"
+        MinWidth="80"
+        MinHeight="40"
+        MaxWidth="600"
+        MaxHeight="400"
+        SystemDecorations="None"
+        TransparencyLevelHint="None"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        Opacity="{Binding Opacity}"
+        InputElement.IsHitTestVisible="{Binding IsInteractive}">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.hud-cps">
+            <Setter Property="Foreground" Value="#00FFFF"/>
+            <Setter Property="FontSize" Value="36"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.hud-fps">
+            <Setter Property="Foreground" Value="#66DDAA"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.hud-total">
+            <Setter Property="Foreground" Value="#AA88FF"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Rectangle.resize-grip">
+            <Setter Property="Fill" Value="#00FFFF"/>
+            <Setter Property="Opacity" Value="0.35"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="Margin" Value="0,0,1,1"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Name="RootGrid" Background="Transparent">
+        <Border Name="NeonBorder"
+                CornerRadius="6"
+                BorderThickness="1.5"
+                BoxShadow="0 0 8 #00FFFF40"
+                Margin="2"
+                Background="#0A0A1AC0">
+            <Grid>
+                <Viewbox Stretch="Uniform" StretchDirection="Both">
+                    <Grid Width="220" Height="64"
+                          RowDefinitions="*,Auto"
+                          Margin="10,6">
+                        <TextBlock Name="CpsDisplay"
+                                   Grid.Row="0"
+                                   Text="{Binding CpsText}"
+                                   Classes="hud-cps">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#00FFFF" BlurRadius="6" OffsetX="0" OffsetY="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="Auto,20,Auto"
+                              HorizontalAlignment="Center"
+                              Margin="0,2,0,0">
+                            <TextBlock Grid.Column="0"
+                                       Classes="hud-fps"
+                                       Text="{Binding FpsText, StringFormat='FPS {0}'}"/>
+                            <TextBlock Grid.Column="2"
+                                       Classes="hud-total"
+                                       Text="{Binding TotalClicksText, StringFormat='TOTAL {0}'}"/>
+                        </Grid>
+                    </Grid>
+                </Viewbox>
+                <Rectangle Classes="resize-grip" Name="ResizeGrip"
+                           IsVisible="{Binding IsInteractive}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

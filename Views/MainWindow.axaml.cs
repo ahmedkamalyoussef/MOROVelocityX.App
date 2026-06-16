@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using MOROVelocityX.ViewModels;
@@ -13,6 +15,16 @@ public partial class MainWindow : Window
         KeyUp += OnKeyUp;
         PointerPressed += OnPointerPressed;
         PointerReleased += OnPointerReleased;
+
+        var telegram = this.FindControl<TextBlock>("TelegramLink");
+        if (telegram != null)
+        {
+            telegram.PointerPressed += (s, e) =>
+            {
+                try { Process.Start(new ProcessStartInfo("xdg-open", "https://t.me/Unro0") { UseShellExecute = true }); }
+                catch { }
+            };
+        }
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
