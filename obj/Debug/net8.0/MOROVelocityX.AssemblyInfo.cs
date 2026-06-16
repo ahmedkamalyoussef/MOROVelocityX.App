@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MOROVelocityX")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9aa1ea6253cea0790ceb4945d441aafba51aa60c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7329a73a8b65678939f78ada0a3f11ca5d58cac6")]
 [assembly: System.Reflection.AssemblyProductAttribute("MOROVelocityX")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MOROVelocityX")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

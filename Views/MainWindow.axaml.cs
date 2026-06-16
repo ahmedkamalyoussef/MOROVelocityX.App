@@ -10,7 +10,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         KeyDown += OnKeyDown;
+        KeyUp += OnKeyUp;
         PointerPressed += OnPointerPressed;
+        PointerReleased += OnPointerReleased;
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -19,6 +21,15 @@ public partial class MainWindow : Window
         {
             var key = e.Key.ToString();
             viewModel.OnKeyPressed(key);
+        }
+    }
+
+    private void OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            var key = e.Key.ToString();
+            viewModel.OnKeyReleased(key);
         }
     }
 
@@ -35,6 +46,22 @@ public partial class MainWindow : Window
                 _ => mouseButton
             };
             viewModel.OnKeyPressed(keyName);
+        }
+    }
+
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            var mouseButton = e.GetCurrentPoint(this).Properties.PointerUpdateKind.ToString();
+            var keyName = mouseButton switch
+            {
+                "LeftButtonPressed" => "Mouse1",
+                "RightButtonPressed" => "Mouse2",
+                "MiddleButtonPressed" => "Mouse3",
+                _ => mouseButton
+            };
+            viewModel.OnKeyReleased(keyName);
         }
     }
 }

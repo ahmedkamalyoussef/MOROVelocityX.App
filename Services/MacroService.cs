@@ -104,15 +104,20 @@ public class MacroService : IDisposable
 
     private void Start()
     {
+        Console.WriteLine("[DEBUG] MacroService.Start()");
         lock (_lock)
         {
             if (_isRunning)
+            {
+                Console.WriteLine("[DEBUG] MacroService.Start() - already running");
                 return;
+            }
 
             _isRunning = true;
             _cancellationTokenSource = new CancellationTokenSource();
             _macroTask = RunMacroAsync(_cancellationTokenSource.Token);
             MacroStatusChanged?.Invoke(this, true);
+            Console.WriteLine("[DEBUG] MacroService.Start() - started");
         }
     }
 
@@ -263,6 +268,7 @@ public class MacroService : IDisposable
 
     private void RunYdotool(string command, string args)
     {
+        Console.WriteLine($"[DEBUG] RunYdotool: {command} {args}");
         try
         {
             var psi = new ProcessStartInfo
@@ -278,9 +284,18 @@ public class MacroService : IDisposable
 
             using var process = Process.Start(psi);
             process?.WaitForExit(500);
+            if (process != null)
+            {
+                Console.WriteLine($"[DEBUG] ydotool exit: {process.ExitCode}");
+                var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
+                if (!string.IsNullOrEmpty(output)) Console.WriteLine($"[DEBUG] ydotool out: {output}");
+                if (!string.IsNullOrEmpty(error)) Console.WriteLine($"[DEBUG] ydotool err: {error}");
+            }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG] ydotool exception: {ex.Message}");
             MacroError?.Invoke(this, $"ydotool execution failed: {ex.Message}");
         }
     }

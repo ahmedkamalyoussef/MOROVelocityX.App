@@ -22,6 +22,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private ApplicationStatus _status = ApplicationStatus.Ready;
     private bool _isCapturingTriggerKey = false;
     private bool _isCapturingClickKey = false;
+    private bool _isArmed = false;
 
     public string TriggerKey
     {
@@ -126,32 +127,32 @@ public partial class MainWindowViewModel : ViewModelBase
         StartCommand = new RelayCommand(Start, CanStart);
         StopCommand = new RelayCommand(Stop, CanStop);
 
-        // Subscribe to global hotkey events
+        _globalHotkeyService.RegisterHotkey(_triggerKey);
         _globalHotkeyService.HotkeyPressed += OnGlobalHotkeyPressed;
-        
-        // Subscribe to macro service events
+        _globalHotkeyService.HotkeyReleased += OnGlobalHotkeyReleased;
+
         _macroService.MacroStatusChanged += OnMacroStatusChanged;
         _macroService.MacroError += OnMacroError;
-        
-        // Configure macro service with initial settings
+
         UpdateMacroConfiguration();
     }
 
     private bool CanStart()
     {
-        return _macroService.IsInputSimulationSupported && !_macroService.IsRunning;
+        return _macroService.IsInputSimulationSupported && !_isArmed;
     }
 
     private bool CanStop()
     {
-        return _macroService.IsInputSimulationSupported && _macroService.IsRunning;
+        return _macroService.IsInputSimulationSupported && _isArmed;
     }
 
     private void OnGlobalHotkeyPressed(object? sender, string key)
     {
-        // Handle global hotkey press (trigger key)
-        if (key == TriggerKey)
+        Console.WriteLine($"[DEBUG] OnGlobalHotkeyPressed: key={key}, TriggerKey={_triggerKey}, _isArmed={_isArmed}, IsToggleMode={IsToggleMode}");
+        if (key == TriggerKey && _isArmed)
         {
+            Console.WriteLine("[DEBUG] Starting macro toggle/hold");
             if (IsToggleMode)
             {
                 _macroService.StartToggleMode();
@@ -163,32 +164,28 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void OnGlobalHotkeyReleased(object? sender, string key)
+    {
+        if (key == TriggerKey && _isArmed && IsHoldMode)
+        {
+            _macroService.StopHoldMode();
+        }
+    }
+
     private void OnMacroStatusChanged(object? sender, bool isRunning)
     {
-        if (isRunning)
-        {
-            Status = ApplicationStatus.Running;
-        }
-        else
-        {
-            Status = ApplicationStatus.Stopped;
-        }
-        
-        // Notify command execution state changes
         ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
     }
 
     private void OnMacroError(object? sender, string error)
     {
-        // Handle macro errors - could show in UI
         try
         {
             Status = ApplicationStatus.Stopped;
         }
         catch
         {
-            // Ignore errors in status update
         }
     }
 
@@ -209,6 +206,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void OnKeyPressed(string key)
     {
+        Console.WriteLine($"[DEBUG] OnKeyPressed: key={key}, IsCapturingTrigger={IsCapturingTriggerKey}, IsCapturingClick={IsCapturingClickKey}, _isArmed={_isArmed}, TriggerKey={_triggerKey}");
         if (IsCapturingTriggerKey)
         {
             TriggerKey = key;
@@ -219,34 +217,28 @@ public partial class MainWindowViewModel : ViewModelBase
             ClickKey = key;
             IsCapturingClickKey = false;
         }
-        else if (key == TriggerKey)
-        {
-            _globalHotkeyService.NotifyKeyPressed(key);
-        }
+    }
+
+    public void OnKeyReleased(string key)
+    {
     }
 
     private void Start()
     {
-        try
-        {
-            if (IsToggleMode)
-            {
-                _macroService.StartToggleMode();
-            }
-            else
-            {
-                _macroService.StartHoldMode();
-            }
-        }
-        catch
-        {
-            // Handle errors silently
-            Status = ApplicationStatus.Stopped;
-        }
+        Console.WriteLine("[DEBUG] Start() called");
+        _isArmed = true;
+        Status = ApplicationStatus.Running;
+        ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
+        ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
     }
 
     private void Stop()
     {
+        Console.WriteLine("[DEBUG] Stop() called");
+        _isArmed = false;
         _macroService.Stop();
+        Status = ApplicationStatus.Ready;
+        ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
+        ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
     }
 }
