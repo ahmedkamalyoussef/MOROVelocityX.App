@@ -20,7 +20,7 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
-        _neonTimer = new Timer(30);
+        _neonTimer = new Timer(100);
         _neonTimer.Elapsed += OnNeonTick;
         _neonTimer.AutoReset = true;
 

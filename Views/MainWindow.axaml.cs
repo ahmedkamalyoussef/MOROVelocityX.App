@@ -19,9 +19,15 @@ public partial class MainWindow : Window
         var telegram = this.FindControl<TextBlock>("TelegramLink");
         if (telegram != null)
         {
-            telegram.PointerPressed += (s, e) =>
+            telegram.PointerPressed += (_, _) =>
             {
-                try { Process.Start(new ProcessStartInfo("xdg-open", "https://t.me/Unro0") { UseShellExecute = true }); }
+                try
+                {
+                    Process.Start(new ProcessStartInfo("https://t.me/Unro0")
+                    {
+                        UseShellExecute = true
+                    });
+                }
                 catch { }
             };
         }

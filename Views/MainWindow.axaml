@@ -6,11 +6,11 @@
         mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
         x:Class="MOROVelocityX.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/app-icon.ico"
         Title="MOROVelocityX"
         MinWidth="400"
         MinHeight="400"
-        Background="Transparent"
+        Background="#0A0A1A"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
 
@@ -53,9 +53,6 @@
             <Setter Property="Foreground" Value="#00FFFF"/>
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Effect">
-                <DropShadowEffect Color="#00BFFF" BlurRadius="12" OffsetX="0" OffsetY="0"/>
-            </Setter>
         </Style>
         <Style Selector="TextBlock.label">
             <Setter Property="Foreground" Value="#00FFFF"/>
@@ -68,14 +65,14 @@
             <Setter Property="FontWeight" Value="Medium"/>
         </Style>
         <Style Selector="Border.glass-panel">
-            <Setter Property="Background" Value="#1A1A2E90"/>
+            <Setter Property="Background" Value="#1A1A2EC0"/>
             <Setter Property="BorderBrush" Value="#00BFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="BoxShadow" Value="0 0 24 #00BFFF40"/>
+            <Setter Property="BoxShadow" Value="0 0 16 #00BFFF30"/>
         </Style>
         <Style Selector="Border.section">
-            <Setter Property="Background" Value="#0A0A1A70"/>
+            <Setter Property="Background" Value="#0A0A1A90"/>
             <Setter Property="BorderBrush" Value="#00BFFF60"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="10"/>
@@ -89,15 +86,18 @@
     </Window.Styles>
 
     <Panel>
-        <Border>
-            <Border.Background>
-                <ImageBrush Source="/Assets/Images/background.jpg" Stretch="UniformToFill"/>
-            </Border.Background>
-        </Border>
+        <Image Source="/Assets/Images/background.jpg"
+               Stretch="UniformToFill">
+            <Image.Effect>
+                <BlurEffect Radius="6"/>
+            </Image.Effect>
+        </Image>
+
+        <Border Background="#0A0A1A70"/>
 
         <Grid RowDefinitions="Auto,*">
             <Border Grid.Row="0"
-                    Background="#0A0A1A80"
+                    Background="#0A0A1A90"
                     Padding="16,10"
                     CornerRadius="0,0,0,16"
                     BoxShadow="0 4 16 #00BFFF30">
@@ -109,12 +109,15 @@
             <ScrollViewer Grid.Row="1"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center">
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch">
                 <Border Classes="glass-panel"
                         Padding="16"
-                        MinWidth="360"
-                        MaxWidth="780">
+                        MinWidth="320"
+                        MaxWidth="780"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="12">
                     <StackPanel Spacing="10">
                         <TextBlock Text="CONTROL PANEL"
                                    Classes="label"
@@ -122,8 +125,9 @@
                                    FontSize="16"
                                    Margin="0,0,0,6"/>
 
-                        <Grid ColumnDefinitions="*,*">
-                            <Border Grid.Column="0" Classes="section">
+                        <Grid ColumnDefinitions="*,*"
+                              RowDefinitions="Auto,Auto">
+                            <Border Grid.Row="0" Grid.Column="0" Classes="section" Margin="0,0,4,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="TRIGGER KEY"
                                                Classes="label"
@@ -140,7 +144,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Grid.Column="1" Classes="section">
+                            <Border Grid.Row="0" Grid.Column="1" Classes="section" Margin="4,0,0,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="CLICK KEY"
                                                Classes="label"
@@ -186,7 +190,7 @@
                                     <TextBlock Text="{Binding CPS}" Classes="value" FontSize="16"/>
                                 </StackPanel>
                                 <Slider Minimum="1"
-                                        Maximum="1000"
+                                        Maximum="500"
                                         Value="{Binding CPS}"
                                         TickFrequency="10"
                                         IsSnapToTickEnabled="True"
@@ -222,11 +226,7 @@
                                            HorizontalAlignment="Center"
                                            FontSize="18"
                                            FontWeight="Bold"
-                                           Margin="0,6,0,0">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect Color="#00BFFF" BlurRadius="8" OffsetX="0" OffsetY="0"/>
-                                    </TextBlock.Effect>
-                                </TextBlock>
+                                           Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 
@@ -242,11 +242,7 @@
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Background="#00BFFF"
-                                    Foreground="#0A0A1A">
-                                <Button.Effect>
-                                    <DropShadowEffect Color="#00BFFF" BlurRadius="12" OffsetX="0" OffsetY="0"/>
-                                </Button.Effect>
-                            </Button>
+                                    Foreground="#0A0A1A"/>
                             <Button Content="STOP"
                                     Command="{Binding StopCommand}"
                                     MinWidth="100"
@@ -256,11 +252,7 @@
                                     VerticalContentAlignment="Center"
                                     Background="#FF4444"
                                     Foreground="#FFFFFF"
-                                    BorderBrush="#FF6666">
-                                <Button.Effect>
-                                    <DropShadowEffect Color="#FF4444" BlurRadius="12" OffsetX="0" OffsetY="0"/>
-                                </Button.Effect>
-                            </Button>
+                                    BorderBrush="#FF6666"/>
                         </StackPanel>
                         <TextBlock Text="F2: Toggle Overlay  |  F3: Edit Mode"
                                    FontSize="9"
@@ -275,9 +267,6 @@
                                    HorizontalAlignment="Center"
                                    Cursor="Hand"
                                    Margin="0,2,0,4">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#00FFFF" BlurRadius="4" OffsetX="0" OffsetY="0"/>
-                            </TextBlock.Effect>
                             <Run Text="Contact "/>
                             <Run Foreground="#66DDFF" Text="@Unro0"/>
                         </TextBlock>

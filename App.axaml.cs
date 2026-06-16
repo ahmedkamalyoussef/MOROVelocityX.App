@@ -56,16 +56,19 @@ public partial class App : Application
     {
         var viewModel = new LicenseViewModel(_licenseService!, validation);
         var licenseWindow = new LicenseWindow(viewModel);
+        var activated = false;
 
         viewModel.ActivationSucceeded += (_, _) =>
         {
+            activated = true;
             var latest = _licenseService!.ValidateOnStartup();
             LaunchMainApplication(desktop, latest);
+            licenseWindow.Close();
         };
 
         licenseWindow.Closed += (_, _) =>
         {
-            if (_licenseService!.ValidateOnStartup().State != LicenseState.Active)
+            if (!activated && _licenseService!.ValidateOnStartup().State != LicenseState.Active)
             {
                 desktop.Shutdown();
             }
@@ -106,7 +109,25 @@ public partial class App : Application
         {
             DataContext = _overlayViewModel
         };
-        _overlayWindow.Show();
+
+        _overlayViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName != nameof(OverlayViewModel.IsVisible) || _overlayWindow == null)
+                return;
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (_overlayViewModel.IsVisible)
+                    _overlayWindow.Show();
+                else
+                    _overlayWindow.Hide();
+            });
+        };
+
+        if (_overlayViewModel.IsVisible)
+            _overlayWindow.Show();
+        else
+            _overlayWindow.Hide();
 
         mainWindow.Opened += (_, _) =>
         {

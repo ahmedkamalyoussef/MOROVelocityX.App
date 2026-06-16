@@ -5,16 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DesignWidth="520"
-        d:DesignHeight="420"
+        d:DesignHeight="460"
         x:Class="MOROVelocityX.Views.LicenseWindow"
         x:DataType="vm:LicenseViewModel"
         Title="MOROVelocityX - License Activation"
         Width="520"
-        Height="420"
+        Height="460"
         MinWidth="420"
-        MinHeight="380"
+        MinHeight="420"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
+        Icon="/Assets/app-icon.ico"
         Background="#0A0A1A">
 
     <Window.Styles>
@@ -118,6 +119,17 @@
                         Command="{Binding ExitCommand}"
                         MinWidth="120"/>
             </StackPanel>
+
+            <TextBlock Name="TelegramLink"
+                       FontSize="11"
+                       Foreground="#00FFFF"
+                       Opacity="0.55"
+                       HorizontalAlignment="Center"
+                       Cursor="Hand"
+                       Margin="0,4,0,0">
+                <Run Text="عايز شهادة؟ تواصل "/>
+                <Run Foreground="#66DDFF" Text="@Unro0"/>
+            </TextBlock>
         </StackPanel>
     </Border>
 </Window>

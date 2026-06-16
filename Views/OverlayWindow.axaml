@@ -68,11 +68,7 @@
                         <TextBlock Name="CpsDisplay"
                                    Grid.Row="0"
                                    Text="{Binding CpsText}"
-                                   Classes="hud-cps">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#00FFFF" BlurRadius="6" OffsetX="0" OffsetY="0"/>
-                            </TextBlock.Effect>
-                        </TextBlock>
+                                   Classes="hud-cps"/>
                         <Grid Grid.Row="1"
                               ColumnDefinitions="Auto,20,Auto"
                               HorizontalAlignment="Center"

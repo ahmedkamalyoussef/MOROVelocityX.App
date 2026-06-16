@@ -1,0 +1,2 @@
+/home/kemo/Development/Work/Freelance/MOROVelocityX/publish/MOROVelocityX.pdb
+/home/kemo/Development/Work/Freelance/MOROVelocityX/publish/MOROVelocityX.exe

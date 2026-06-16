@@ -40,13 +40,46 @@ public class MacroService : IDisposable
         IsInputSimulationSupported = _isWindows || _isLinux;
     }
 
-#if WINDOWS
-    [DllImport("user32.dll")]
-    private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion U;
+    }
 
-    [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+    }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    private const uint INPUT_MOUSE = 0;
+    private const uint INPUT_KEYBOARD = 1;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -54,7 +87,6 @@ public class MacroService : IDisposable
     private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
     private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
     private const uint KEYEVENTF_KEYUP = 0x0002;
-#endif
 
     public void Configure(bool isToggleMode, int cps, string clickKey)
     {
@@ -69,64 +101,44 @@ public class MacroService : IDisposable
 
     public void StartToggleMode()
     {
-        Console.WriteLine($"[DEBUG] StartToggleMode: _isRunning={_isRunning}");
         lock (_lock)
         {
             if (_isRunning)
-            {
-                Console.WriteLine("[DEBUG] StartToggleMode: calling Stop()");
                 Stop();
-            }
             else
-            {
-                Console.WriteLine("[DEBUG] StartToggleMode: calling Start()");
                 Start();
-            }
         }
     }
 
     public void StartHoldMode()
     {
-        Console.WriteLine($"[DEBUG] StartHoldMode: _isRunning={_isRunning}, _isHoldMode={_isHoldMode}");
         lock (_lock)
         {
             if (!_isRunning)
-            {
-                Console.WriteLine("[DEBUG] StartHoldMode: calling Start()");
                 Start();
-            }
         }
     }
 
     public void StopHoldMode()
     {
-        Console.WriteLine($"[DEBUG] StopHoldMode: _isRunning={_isRunning}, _isHoldMode={_isHoldMode}");
         lock (_lock)
         {
             if (_isRunning && _isHoldMode)
-            {
-                Console.WriteLine("[DEBUG] StopHoldMode: calling Stop()");
                 Stop();
-            }
         }
     }
 
     private void Start()
     {
-        Console.WriteLine("[DEBUG] MacroService.Start()");
         lock (_lock)
         {
             if (_isRunning)
-            {
-                Console.WriteLine("[DEBUG] MacroService.Start() - already running");
                 return;
-            }
 
             _isRunning = true;
             _cancellationTokenSource = new CancellationTokenSource();
             _macroTask = RunMacroAsync(_cancellationTokenSource.Token);
             MacroStatusChanged?.Invoke(this, true);
-            Console.WriteLine("[DEBUG] MacroService.Start() - started");
         }
     }
 
@@ -156,62 +168,62 @@ public class MacroService : IDisposable
             _macroTask = null;
 
             ReleaseClickKey();
-            
+
             MacroStatusChanged?.Invoke(this, false);
         }
     }
 
     private void ReleaseClickKey()
     {
-        if (_isLinux)
+        if (!_isLinux)
+            return;
+
+        string clickKey;
+        lock (_lock)
         {
-            string clickKey;
-            lock (_lock)
+            clickKey = _clickKey;
+        }
+
+        int keycode = KeyToLinuxKeycode(clickKey);
+        if (keycode > 0)
+        {
+            try
             {
-                clickKey = _clickKey;
-            }
-            
-            int keycode = KeyToLinuxKeycode(clickKey);
-            if (keycode > 0)
-            {
-                try
+                var psi = new ProcessStartInfo
                 {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = "ydotool",
-                        Arguments = $"key {keycode}:0",
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                    psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-                    Process.Start(psi);
-                }
-                catch { }
+                    FileName = "ydotool",
+                    Arguments = $"key {keycode}:0",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+                Process.Start(psi);
             }
+            catch { }
         }
     }
 
     public void ReleaseKey(string key)
     {
-        if (_isLinux)
+        if (!_isLinux)
+            return;
+
+        int keycode = KeyToLinuxKeycode(key);
+        if (keycode > 0)
         {
-            int keycode = KeyToLinuxKeycode(key);
-            if (keycode > 0)
+            try
             {
-                try
+                var psi = new ProcessStartInfo
                 {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = "ydotool",
-                        Arguments = $"key {keycode}:0",
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                    psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-                    Process.Start(psi);
-                }
-                catch { }
+                    FileName = "ydotool",
+                    Arguments = $"key {keycode}:0",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+                Process.Start(psi);
             }
+            catch { }
         }
     }
 
@@ -229,8 +241,13 @@ public class MacroService : IDisposable
 
                 PerformClick();
 
-                int delayMs = 1000 / _cps;
+                int cps;
+                lock (_lock)
+                {
+                    cps = _cps;
+                }
 
+                int delayMs = Math.Max(1, 1000 / Math.Max(1, cps));
                 await Task.Delay(delayMs, cancellationToken);
             }
         }
@@ -259,24 +276,18 @@ public class MacroService : IDisposable
         try
         {
             string clickKey;
-            bool isToggleMode;
 
             lock (_lock)
             {
                 clickKey = _clickKey;
-                isToggleMode = _isToggleMode;
             }
 
             StatsService?.RecordClick();
 
             if (_isWindows)
-            {
                 PerformClickWindows(clickKey);
-            }
             else if (_isLinux)
-            {
                 PerformClickLinux(clickKey);
-            }
         }
         catch (Exception ex)
         {
@@ -286,7 +297,6 @@ public class MacroService : IDisposable
 
     private void PerformClickWindows(string clickKey)
     {
-#if WINDOWS
         switch (clickKey.ToUpper())
         {
             case "MOUSE1":
@@ -305,7 +315,6 @@ public class MacroService : IDisposable
                 SimulateKeyPress(clickKey);
                 break;
         }
-#endif
     }
 
     private void PerformClickLinux(string clickKey)
@@ -326,15 +335,12 @@ public class MacroService : IDisposable
         {
             int keycode = KeyToLinuxKeycode(clickKey);
             if (keycode > 0)
-            {
                 RunYdotool("key", $"{keycode}:1 {keycode}:0");
-            }
         }
     }
 
     private void RunYdotool(string command, string args)
     {
-        Console.WriteLine($"[DEBUG] RunYdotool: {command} {args}");
         try
         {
             var psi = new ProcessStartInfo
@@ -350,30 +356,26 @@ public class MacroService : IDisposable
 
             using var process = Process.Start(psi);
             process?.WaitForExit(500);
-            if (process != null)
-            {
-                Console.WriteLine($"[DEBUG] ydotool exit: {process.ExitCode}");
-                var output = process.StandardOutput.ReadToEnd();
-                var error = process.StandardError.ReadToEnd();
-                if (!string.IsNullOrEmpty(output)) Console.WriteLine($"[DEBUG] ydotool out: {output}");
-                if (!string.IsNullOrEmpty(error)) Console.WriteLine($"[DEBUG] ydotool err: {error}");
-            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG] ydotool exception: {ex.Message}");
             MacroError?.Invoke(this, $"ydotool execution failed: {ex.Message}");
         }
     }
 
-#if WINDOWS
     private void SimulateMouseClick(uint downFlag, uint upFlag)
     {
+        if (!_isWindows)
+            return;
+
         try
         {
-            mouse_event(downFlag, 0, 0, 0, 0);
-            Thread.Sleep(10);
-            mouse_event(upFlag, 0, 0, 0, 0);
+            var inputs = new INPUT[]
+            {
+                new() { type = INPUT_MOUSE, U = new InputUnion { mi = new MOUSEINPUT { dwFlags = downFlag } } },
+                new() { type = INPUT_MOUSE, U = new InputUnion { mi = new MOUSEINPUT { dwFlags = upFlag } } }
+            };
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
         }
         catch (Exception ex)
         {
@@ -383,22 +385,27 @@ public class MacroService : IDisposable
 
     private void SimulateKeyPress(string key)
     {
+        if (!_isWindows)
+            return;
+
         try
         {
             byte vkCode = KeyToVirtualKey(key);
-            if (vkCode != 0)
+            if (vkCode == 0)
+                return;
+
+            var inputs = new INPUT[]
             {
-                keybd_event(vkCode, 0, 0, 0);
-                Thread.Sleep(10);
-                keybd_event(vkCode, 0, KEYEVENTF_KEYUP, 0);
-            }
+                new() { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode } } },
+                new() { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode, dwFlags = KEYEVENTF_KEYUP } } }
+            };
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
         }
         catch (Exception ex)
         {
             MacroError?.Invoke(this, $"Key press simulation failed: {ex.Message}");
         }
     }
-#endif
 
     private static int KeyToLinuxKeycode(string key)
     {
@@ -469,7 +476,7 @@ public class MacroService : IDisposable
         };
     }
 
-    private byte KeyToVirtualKey(string key)
+    private static byte KeyToVirtualKey(string key)
     {
         var keyUpper = key.ToUpper().Replace(" ", "");
 
