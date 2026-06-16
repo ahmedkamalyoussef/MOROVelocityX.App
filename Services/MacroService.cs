@@ -153,7 +153,39 @@ public class MacroService : IDisposable
             _cancellationTokenSource = null;
             _macroTask = null;
 
+            ReleaseClickKey();
+            
             MacroStatusChanged?.Invoke(this, false);
+        }
+    }
+
+    private void ReleaseClickKey()
+    {
+        if (_isLinux)
+        {
+            string clickKey;
+            lock (_lock)
+            {
+                clickKey = _clickKey;
+            }
+            
+            int keycode = KeyToLinuxKeycode(clickKey);
+            if (keycode > 0)
+            {
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "ydotool",
+                        Arguments = $"key {keycode}:0",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+                    Process.Start(psi);
+                }
+                catch { }
+            }
         }
     }
 
@@ -164,7 +196,19 @@ public class MacroService : IDisposable
             int keycode = KeyToLinuxKeycode(key);
             if (keycode > 0)
             {
-                RunYdotool("key", $"{keycode}:0");
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "ydotool",
+                        Arguments = $"key {keycode}:0",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+                    Process.Start(psi);
+                }
+                catch { }
             }
         }
     }

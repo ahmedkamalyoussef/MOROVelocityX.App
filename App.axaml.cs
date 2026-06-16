@@ -14,6 +14,7 @@ public partial class App : Application
 {
     private GlobalHotkeyService? _globalHotkeyService;
     private MacroService? _macroService;
+    private IClassicDesktopStyleApplicationLifetime? _desktop;
 
     public override void Initialize()
     {
@@ -24,8 +25,8 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-            // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
+            _desktop = desktop;
+            
             DisableAvaloniaDataAnnotationValidation();
             
             _globalHotkeyService = new GlobalHotkeyService();
@@ -36,7 +37,6 @@ public partial class App : Application
             mainWindow.DataContext = viewModel;
             desktop.MainWindow = mainWindow;
             
-            // Initialize global hotkey service with window handle after window is loaded
             mainWindow.Opened += (sender, e) =>
             {
                 var handle = mainWindow.TryGetPlatformHandle()?.Handle;
@@ -45,18 +45,33 @@ public partial class App : Application
                     _globalHotkeyService?.Initialize(handle.Value);
                 }
             };
+            
+            desktop.ShutdownRequested += OnShutdownRequested;
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
+    private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
+    {
+        try
+        {
+            if (_desktop?.MainWindow?.DataContext is MainWindowViewModel vm)
+            {
+                vm.Stop();
+            }
+        }
+        catch { }
+        
+        _macroService?.Dispose();
+        _globalHotkeyService?.Dispose();
+    }
+
     private void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
         var dataValidationPluginsToRemove =
             BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
-        // remove each entry found
         foreach (var plugin in dataValidationPluginsToRemove)
         {
             BindingPlugins.DataValidators.Remove(plugin);

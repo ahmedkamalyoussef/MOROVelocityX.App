@@ -64,4 +64,12 @@ public partial class MainWindow : Window
             viewModel.OnKeyReleased(keyName);
         }
     }
+
+    private void OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.Stop();
+        }
+    }
 }

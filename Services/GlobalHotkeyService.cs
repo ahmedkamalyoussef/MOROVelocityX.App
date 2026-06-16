@@ -70,9 +70,6 @@ public class GlobalHotkeyService : IDisposable
 
     private const ushort EV_KEY = 1;
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int ioctl(int fd, uint request, int value);
-
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -86,7 +83,6 @@ public class GlobalHotkeyService : IDisposable
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     private const int WH_KEYBOARD_LL = 13;
-    private const uint EVIOCGRAB = 0x80044590;
 
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -215,7 +211,9 @@ public class GlobalHotkeyService : IDisposable
 
                     if (keyName == null) continue;
 
-                    if (!string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey)
+                    bool isTrigger = !string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey;
+
+                    if (isTrigger)
                     {
                         if (evt.value == 1)
                         {
@@ -240,19 +238,14 @@ public class GlobalHotkeyService : IDisposable
         }
     }
 
-    public void SetKeyboardGrab(bool grab)
+    public void Dispose()
     {
-        if (!_isLinux || _linuxEventStream?.SafeFileHandle == null) return;
-        try
+        if (_hookId != IntPtr.Zero)
         {
-            int fd = (int)_linuxEventStream.SafeFileHandle.DangerousGetHandle();
-            int result = ioctl(fd, EVIOCGRAB, grab ? 1 : 0);
-            Console.WriteLine($"[DEBUG] EVIOCGRAB({grab}) = {result}");
+            UnhookWindowsHookEx(_hookId);
+            _hookId = IntPtr.Zero;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[DEBUG] EVIOCGRAB error: {ex.Message}");
-        }
+        StopLinuxKeyMonitoring();
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -288,6 +281,10 @@ public class GlobalHotkeyService : IDisposable
         _registeredKey = null;
     }
 
+    public void SetKeyboardGrab(bool grab)
+    {
+    }
+
     private string VirtualKeyToString(int vkCode)
     {
         return vkCode switch
@@ -307,15 +304,5 @@ public class GlobalHotkeyService : IDisposable
             0x38 => "8", 0x39 => "9",
             _ => vkCode.ToString()
         };
-    }
-
-    public void Dispose()
-    {
-        if (_hookId != IntPtr.Zero)
-        {
-            UnhookWindowsHookEx(_hookId);
-            _hookId = IntPtr.Zero;
-        }
-        StopLinuxKeyMonitoring();
     }
 }

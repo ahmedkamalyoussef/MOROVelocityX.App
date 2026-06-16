@@ -153,14 +153,13 @@ public partial class MainWindowViewModel : ViewModelBase
         if (key == TriggerKey && _isArmed)
         {
             Console.WriteLine("[DEBUG] Starting macro toggle/hold");
+            _macroService.ReleaseKey(TriggerKey);
             if (IsToggleMode)
             {
                 _macroService.StartToggleMode();
             }
             else
             {
-                _globalHotkeyService.SetKeyboardGrab(true);
-                _macroService.ReleaseKey(TriggerKey);
                 _macroService.StartHoldMode();
             }
         }
@@ -171,7 +170,6 @@ public partial class MainWindowViewModel : ViewModelBase
         if (key == TriggerKey && _isArmed && IsHoldMode)
         {
             _macroService.StopHoldMode();
-            _globalHotkeyService.SetKeyboardGrab(false);
         }
     }
 
@@ -235,12 +233,11 @@ public partial class MainWindowViewModel : ViewModelBase
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
     }
 
-    private void Stop()
+    public void Stop()
     {
         Console.WriteLine("[DEBUG] Stop() called");
         _isArmed = false;
         _macroService.Stop();
-        _globalHotkeyService.SetKeyboardGrab(false);
         Status = ApplicationStatus.Ready;
         ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
