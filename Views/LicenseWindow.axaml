@@ -1,0 +1,124 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MOROVelocityX.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="520"
+        d:DesignHeight="420"
+        x:Class="MOROVelocityX.Views.LicenseWindow"
+        x:DataType="vm:LicenseViewModel"
+        Title="MOROVelocityX - License Activation"
+        Width="520"
+        Height="420"
+        MinWidth="420"
+        MinHeight="380"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        Background="#0A0A1A">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.title">
+            <Setter Property="Foreground" Value="#00FFFF"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#00FFFF"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="TextBlock.value">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#1A1A2E"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#00BFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#1A1A2E"/>
+            <Setter Property="Foreground" Value="#00FFFF"/>
+            <Setter Property="BorderBrush" Value="#00BFFF"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#00BFFF"/>
+            <Setter Property="Foreground" Value="#0A0A1A"/>
+        </Style>
+    </Window.Styles>
+
+    <Border Padding="24"
+            BorderBrush="#00BFFF"
+            BorderThickness="1"
+            CornerRadius="16"
+            Margin="16"
+            Background="#1A1A2E90">
+        <StackPanel Spacing="14">
+            <TextBlock Text="LICENSE ACTIVATION"
+                       Classes="title"
+                       HorizontalAlignment="Center"/>
+
+            <TextBlock Text="Enter your license code to activate MOROVelocityX."
+                       Classes="value"
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
+                       Opacity="0.85"/>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="LICENSE CODE" Classes="label"/>
+                <TextBox Text="{Binding LicenseCode}"
+                         Watermark="MORO-LIFE-001-XXXX"/>
+            </StackPanel>
+
+            <Border Background="#0A0A1A70"
+                    BorderBrush="#00BFFF60"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Status:" Classes="label"/>
+                        <TextBlock Text="{Binding StateText}" Classes="value" FontWeight="Bold"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Classes="value"
+                               TextWrapping="Wrap"
+                               Opacity="0.9"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="HARDWARE FINGERPRINT" Classes="label"/>
+                <TextBlock Text="{Binding HardwareFingerprint}"
+                           Classes="value"
+                           FontSize="10"
+                           TextWrapping="Wrap"
+                           Opacity="0.6"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="12"
+                        Margin="0,8,0,0">
+                <Button Content="Activate"
+                        Classes="primary"
+                        Command="{Binding ActivateCommand}"
+                        MinWidth="120"/>
+                <Button Content="Exit"
+                        Command="{Binding ExitCommand}"
+                        MinWidth="120"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

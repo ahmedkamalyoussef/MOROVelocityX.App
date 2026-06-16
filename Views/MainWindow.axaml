@@ -8,13 +8,11 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="MOROVelocityX"
+        MinWidth="400"
+        MinHeight="400"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
-
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
 
     <Window.Styles>
         <Style Selector="Button:pointerover /template/ ContentPresenter">
@@ -27,8 +25,8 @@
             <Setter Property="BorderBrush" Value="#00BFFF"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="15,10"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Transitions">
@@ -45,44 +43,44 @@
         </Style>
         <Style Selector="RadioButton">
             <Setter Property="Foreground" Value="#00FFFF"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,3"/>
         </Style>
         <Style Selector="RadioButton:pointerover">
             <Setter Property="Foreground" Value="#00BFFF"/>
         </Style>
         <Style Selector="TextBlock.title">
             <Setter Property="Foreground" Value="#00FFFF"/>
-            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Effect">
-                <DropShadowEffect Color="#00BFFF" BlurRadius="15" OffsetX="0" OffsetY="0"/>
+                <DropShadowEffect Color="#00BFFF" BlurRadius="12" OffsetX="0" OffsetY="0"/>
             </Setter>
         </Style>
         <Style Selector="TextBlock.label">
             <Setter Property="Foreground" Value="#00FFFF"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style Selector="TextBlock.value">
             <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
         </Style>
         <Style Selector="Border.glass-panel">
             <Setter Property="Background" Value="#1A1A2E90"/>
             <Setter Property="BorderBrush" Value="#00BFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="20"/>
-            <Setter Property="BoxShadow" Value="0 0 30 #00BFFF40"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="BoxShadow" Value="0 0 24 #00BFFF40"/>
         </Style>
         <Style Selector="Border.section">
             <Setter Property="Background" Value="#0A0A1A70"/>
             <Setter Property="BorderBrush" Value="#00BFFF60"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="10"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="4"/>
         </Style>
         <Style Selector="Slider">
             <Setter Property="Foreground" Value="#00FFFF"/>
@@ -97,80 +95,80 @@
             </Border.Background>
         </Border>
 
-        <Grid RowDefinitions="Auto,*,Auto">
-            <Border Grid.Row="0" 
-                    Background="#0A0A1A80" 
-                    Padding="20,15"
-                    CornerRadius="0,0,0,20"
-                    BoxShadow="0 5 20 #00BFFF30">
-                <TextBlock Text="MORO VELOCITY X" 
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0"
+                    Background="#0A0A1A80"
+                    Padding="16,10"
+                    CornerRadius="0,0,0,16"
+                    BoxShadow="0 4 16 #00BFFF30">
+                <TextBlock Text="MORO VELOCITY X"
                            Classes="title"
                            HorizontalAlignment="Center"/>
             </Border>
 
-            <StackPanel Grid.Row="1" 
-                       Orientation="Vertical" 
-                       HorizontalAlignment="Center" 
-                       VerticalAlignment="Center"
-                       Spacing="20">
-                <Border Classes="glass-panel" 
-                        Padding="30"
-                        Width="700"
-                        MaxWidth="700">
-                    <StackPanel Spacing="25">
-                        <TextBlock Text="CONTROL PANEL" 
+            <ScrollViewer Grid.Row="1"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center">
+                <Border Classes="glass-panel"
+                        Padding="16"
+                        MinWidth="360"
+                        MaxWidth="780">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="CONTROL PANEL"
                                    Classes="label"
                                    HorizontalAlignment="Center"
-                                   FontSize="18"
-                                   Margin="0,0,0,10"/>
+                                   FontSize="16"
+                                   Margin="0,0,0,6"/>
 
                         <Grid ColumnDefinitions="*,*">
                             <Border Grid.Column="0" Classes="section">
-                                <StackPanel Spacing="15">
-                                    <TextBlock Text="TRIGGER KEY" 
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="TRIGGER KEY"
                                                Classes="label"
                                                HorizontalAlignment="Center"
-                                               Margin="0,0,0,10"/>
-                                    <Button Content="Capture" 
+                                               Margin="0,0,0,6"/>
+                                    <Button Content="Capture"
                                             Command="{Binding CaptureTriggerKeyCommand}"
                                             HorizontalAlignment="Stretch"/>
-                                    <TextBlock Text="{Binding TriggerKey}" 
+                                    <TextBlock Text="{Binding TriggerKey}"
                                                Classes="value"
                                                HorizontalAlignment="Center"
-                                               FontSize="18"
-                                               Margin="0,10,0,0"/>
+                                               FontSize="16"
+                                               Margin="0,6,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="1" Classes="section">
-                                <StackPanel Spacing="15">
-                                    <TextBlock Text="CLICK KEY" 
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="CLICK KEY"
                                                Classes="label"
                                                HorizontalAlignment="Center"
-                                               Margin="0,0,0,10"/>
-                                    <Button Content="Capture" 
+                                               Margin="0,0,0,6"/>
+                                    <Button Content="Capture"
                                             Command="{Binding CaptureClickKeyCommand}"
                                             HorizontalAlignment="Stretch"/>
-                                    <TextBlock Text="{Binding ClickKey}" 
+                                    <TextBlock Text="{Binding ClickKey}"
                                                Classes="value"
                                                HorizontalAlignment="Center"
-                                               FontSize="18"
-                                               Margin="0,10,0,0"/>
+                                               FontSize="16"
+                                               Margin="0,6,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
 
                         <Border Classes="section">
-                            <StackPanel Spacing="15">
-                                <TextBlock Text="MODE" 
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="MODE"
                                            Classes="label"
                                            HorizontalAlignment="Center"
-                                           Margin="0,0,0,10"/>
-                                <StackPanel Orientation="Horizontal" Spacing="30" HorizontalAlignment="Center">
-                                    <RadioButton Content="Toggle Mode" 
+                                           Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                                    <RadioButton Content="Toggle Mode"
                                                 IsChecked="{Binding IsToggleMode}"
                                                 GroupName="Mode"/>
-                                    <RadioButton Content="Hold Mode" 
+                                    <RadioButton Content="Hold Mode"
                                                 IsChecked="{Binding IsHoldMode}"
                                                 GroupName="Mode"/>
                                 </StackPanel>
@@ -178,78 +176,114 @@
                         </Border>
 
                         <Border Classes="section">
-                            <StackPanel Spacing="15">
-                                <TextBlock Text="CPS" 
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="CPS"
                                            Classes="label"
                                            HorizontalAlignment="Center"
-                                           Margin="0,0,0,10"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                           Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
                                     <TextBlock Text="Value:" Classes="label"/>
-                                    <TextBlock Text="{Binding CPS}" Classes="value" FontSize="18"/>
+                                    <TextBlock Text="{Binding CPS}" Classes="value" FontSize="16"/>
                                 </StackPanel>
-                                <Slider Minimum="1" 
-                                        Maximum="1000" 
+                                <Slider Minimum="1"
+                                        Maximum="1000"
                                         Value="{Binding CPS}"
                                         TickFrequency="10"
                                         IsSnapToTickEnabled="True"
-                                        Margin="0,15,0,0"/>
+                                        Margin="0,10,0,0"/>
                             </StackPanel>
                         </Border>
 
                         <Border Classes="section">
-                            <StackPanel Spacing="15">
-                                <TextBlock Text="STATUS" 
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="LICENSE"
                                            Classes="label"
                                            HorizontalAlignment="Center"
-                                           Margin="0,0,0,10"/>
-                                <TextBlock Text="{Binding StatusText}" 
+                                           Margin="0,0,0,6"/>
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Classes="label" Margin="0,0,8,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LicenseStatusText}" Classes="value"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Type:" Classes="label" Margin="0,0,8,4"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LicenseTypeText}" Classes="value"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Expires:" Classes="label" Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LicenseExpiryText}" Classes="value"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="section">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="STATUS"
+                                           Classes="label"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding StatusText}"
                                            Classes="value"
                                            HorizontalAlignment="Center"
-                                           FontSize="22"
+                                           FontSize="18"
                                            FontWeight="Bold"
-                                           Margin="0,10,0,0">
+                                           Margin="0,6,0,0">
                                     <TextBlock.Effect>
-                                        <DropShadowEffect Color="#00BFFF" BlurRadius="10" OffsetX="0" OffsetY="0"/>
+                                        <DropShadowEffect Color="#00BFFF" BlurRadius="8" OffsetX="0" OffsetY="0"/>
                                     </TextBlock.Effect>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
 
-                        <StackPanel Orientation="Horizontal" 
-                                   HorizontalAlignment="Center" 
-                                   Spacing="20"
-                                   Margin="0,10,0,0">
-                            <Button Content="START" 
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Spacing="12"
+                                    Margin="0,6,0,0">
+                            <Button Content="START"
                                     Command="{Binding StartCommand}"
-                                    Width="150"
-                                    Height="50"
-                                    FontSize="16"
+                                    MinWidth="100"
+                                    Height="44"
+                                    FontSize="15"
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Background="#00BFFF"
                                     Foreground="#0A0A1A">
                                 <Button.Effect>
-                                    <DropShadowEffect Color="#00BFFF" BlurRadius="15" OffsetX="0" OffsetY="0"/>
+                                    <DropShadowEffect Color="#00BFFF" BlurRadius="12" OffsetX="0" OffsetY="0"/>
                                 </Button.Effect>
                             </Button>
-                            <Button Content="STOP" 
+                            <Button Content="STOP"
                                     Command="{Binding StopCommand}"
-                                    Width="150"
-                                    Height="50"
-                                    FontSize="16"
+                                    MinWidth="100"
+                                    Height="44"
+                                    FontSize="15"
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Background="#FF4444"
                                     Foreground="#FFFFFF"
                                     BorderBrush="#FF6666">
                                 <Button.Effect>
-                                    <DropShadowEffect Color="#FF4444" BlurRadius="15" OffsetX="0" OffsetY="0"/>
+                                    <DropShadowEffect Color="#FF4444" BlurRadius="12" OffsetX="0" OffsetY="0"/>
                                 </Button.Effect>
                             </Button>
                         </StackPanel>
+                        <TextBlock Text="F2: Toggle Overlay  |  F3: Edit Mode"
+                                   FontSize="9"
+                                   Foreground="#00FFFF"
+                                   Opacity="0.4"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,2,0,0"/>
+                        <TextBlock Name="TelegramLink"
+                                   FontSize="10"
+                                   Foreground="#00FFFF"
+                                   Opacity="0.35"
+                                   HorizontalAlignment="Center"
+                                   Cursor="Hand"
+                                   Margin="0,2,0,4">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#00FFFF" BlurRadius="4" OffsetX="0" OffsetY="0"/>
+                            </TextBlock.Effect>
+                            <Run Text="Contact "/>
+                            <Run Foreground="#66DDFF" Text="@Unro0"/>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
-            </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Panel>
 </Window>

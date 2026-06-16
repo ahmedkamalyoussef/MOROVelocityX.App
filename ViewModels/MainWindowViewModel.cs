@@ -1,7 +1,8 @@
-﻿using System.Windows.Input;
+﻿using System;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using MOROVelocityX.Models;
 using MOROVelocityX.Services;
-using System;
 
 namespace MOROVelocityX.ViewModels;
 
@@ -24,6 +25,27 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _isCapturingTriggerKey = false;
     private bool _isCapturingClickKey = false;
     private bool _isArmed = false;
+    private string _licenseStatusText = "Active";
+    private string _licenseTypeText = string.Empty;
+    private string _licenseExpiryText = "Never";
+
+    public string LicenseStatusText
+    {
+        get => _licenseStatusText;
+        private set => SetProperty(ref _licenseStatusText, value);
+    }
+
+    public string LicenseTypeText
+    {
+        get => _licenseTypeText;
+        private set => SetProperty(ref _licenseTypeText, value);
+    }
+
+    public string LicenseExpiryText
+    {
+        get => _licenseExpiryText;
+        private set => SetProperty(ref _licenseExpiryText, value);
+    }
 
     public string TriggerKey
     {
@@ -131,12 +153,20 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly GlobalHotkeyService _globalHotkeyService;
     private readonly MacroService _macroService;
     private readonly OverlayViewModel _overlayViewModel;
+    private readonly LicenseService _licenseService;
 
-    public MainWindowViewModel(GlobalHotkeyService globalHotkeyService, MacroService macroService, OverlayViewModel overlayViewModel)
+    public MainWindowViewModel(
+        GlobalHotkeyService globalHotkeyService,
+        MacroService macroService,
+        OverlayViewModel overlayViewModel,
+        LicenseService licenseService,
+        LicenseValidationResult licenseValidation)
     {
         _globalHotkeyService = globalHotkeyService;
         _macroService = macroService;
         _overlayViewModel = overlayViewModel;
+        _licenseService = licenseService;
+        ApplyLicenseValidation(licenseValidation);
         CaptureTriggerKeyCommand = new RelayCommand(CaptureTriggerKey);
         CaptureClickKeyCommand = new RelayCommand(CaptureClickKey);
         StartCommand = new RelayCommand(Start, CanStart);
@@ -156,7 +186,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private bool CanStart()
     {
-        return _macroService.IsInputSimulationSupported && !_isArmed;
+        return _macroService.IsInputSimulationSupported
+               && !_isArmed
+               && _licenseService.ValidateOnStartup().State == LicenseState.Active;
     }
 
     private bool CanStop()
@@ -250,6 +282,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void Start()
     {
+        var validation = _licenseService.ValidateOnStartup();
+        ApplyLicenseValidation(validation);
+        if (validation.State != LicenseState.Active)
+        {
+            Status = ApplicationStatus.Stopped;
+            return;
+        }
+
         Console.WriteLine("[DEBUG] Start() called");
         _isArmed = true;
         _globalHotkeyService.ShouldSuppressKey = ShouldSuppressTriggerKey;
@@ -272,4 +312,13 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private bool ShouldSuppressTriggerKey(string key) => _isArmed && key == TriggerKey;
+
+    private void ApplyLicenseValidation(LicenseValidationResult validation)
+    {
+        LicenseStatusText = validation.State.ToString();
+        LicenseTypeText = validation.License?.Type.ToString() ?? "None";
+        LicenseExpiryText = validation.License?.ExpiresAtUtc.HasValue == true
+            ? validation.License.ExpiresAtUtc!.Value.ToLocalTime().ToString("g")
+            : "Never";
+    }
 }
