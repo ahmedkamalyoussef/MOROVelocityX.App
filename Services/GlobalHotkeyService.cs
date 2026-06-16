@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Windows.Input;
 
 namespace MOROVelocityX.Services;
 
@@ -10,9 +9,9 @@ public class GlobalHotkeyService : IDisposable
     private string? _registeredKey;
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _hookProc;
-    private bool _isWindows;
+    private readonly bool _isWindows;
+    private readonly bool _isLinux;
 
-    // Windows APIs
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -36,16 +35,18 @@ public class GlobalHotkeyService : IDisposable
     public GlobalHotkeyService()
     {
         _isWindows = OperatingSystem.IsWindows();
-        IsGlobalHotkeySupported = _isWindows;
+        _isLinux = OperatingSystem.IsLinux();
+        IsGlobalHotkeySupported = _isWindows || _isLinux;
     }
 
     public void Initialize(IntPtr windowHandle)
     {
-        if (!_isWindows)
-            return;
-
         _windowHandle = windowHandle;
-        StartKeyMonitoring();
+
+        if (_isWindows)
+        {
+            StartKeyMonitoring();
+        }
     }
 
     private void StartKeyMonitoring()
@@ -57,18 +58,17 @@ public class GlobalHotkeyService : IDisposable
         }
         catch
         {
-            // Ignore errors - global hotkeys not available
             IsGlobalHotkeySupported = false;
         }
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && wParam == (IntPtr)0x0100) // WM_KEYDOWN
+        if (nCode >= 0 && wParam == (IntPtr)0x0100)
         {
             int vkCode = Marshal.ReadInt32(lParam);
             string keyName = VirtualKeyToString(vkCode);
-            
+
             if (!string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey)
             {
                 HotkeyPressed?.Invoke(this, _registeredKey);
@@ -86,6 +86,14 @@ public class GlobalHotkeyService : IDisposable
     public void UnregisterHotkey()
     {
         _registeredKey = null;
+    }
+
+    public void NotifyKeyPressed(string key)
+    {
+        if (!string.IsNullOrEmpty(_registeredKey) && key == _registeredKey)
+        {
+            HotkeyPressed?.Invoke(this, key);
+        }
     }
 
     private string VirtualKeyToString(int vkCode)

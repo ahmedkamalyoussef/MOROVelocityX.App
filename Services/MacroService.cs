@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,9 @@ public class MacroService : IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _macroTask;
     private readonly object _lock = new object();
-    private bool _isWindows;
+    private readonly bool _isWindows;
+    private readonly bool _isLinux;
+    private static readonly string YdotoolSocket = "/tmp/ydotool.sock";
 
     public event EventHandler<bool>? MacroStatusChanged;
     public event EventHandler<string>? MacroError;
@@ -31,11 +34,11 @@ public class MacroService : IDisposable
         _cps = 10;
         _clickKey = "Mouse1";
         _isWindows = OperatingSystem.IsWindows();
-        IsInputSimulationSupported = _isWindows;
+        _isLinux = OperatingSystem.IsLinux();
+        IsInputSimulationSupported = _isWindows || _isLinux;
     }
 
 #if WINDOWS
-    // Windows APIs for input simulation - only used on Windows
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
 
@@ -106,12 +109,6 @@ public class MacroService : IDisposable
             if (_isRunning)
                 return;
 
-            if (!_isWindows)
-            {
-                MacroError?.Invoke(this, "Macro execution is only supported on Windows");
-                return;
-            }
-
             _isRunning = true;
             _cancellationTokenSource = new CancellationTokenSource();
             _macroTask = RunMacroAsync(_cancellationTokenSource.Token);
@@ -128,24 +125,22 @@ public class MacroService : IDisposable
 
             _isRunning = false;
             _cancellationTokenSource?.Cancel();
-            
+
             try
             {
                 _macroTask?.Wait(TimeSpan.FromSeconds(2));
             }
             catch (AggregateException)
             {
-                // Task was cancelled, this is expected
             }
             catch (OperationCanceledException)
             {
-                // Task was cancelled, this is expected
             }
 
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
             _macroTask = null;
-            
+
             MacroStatusChanged?.Invoke(this, false);
         }
     }
@@ -162,19 +157,15 @@ public class MacroService : IDisposable
                         break;
                 }
 
-                // Perform click action
                 PerformClick();
 
-                // Calculate delay based on CPS
                 int delayMs = 1000 / _cps;
 
-                // Wait with cancellation support
                 await Task.Delay(delayMs, cancellationToken);
             }
         }
         catch (TaskCanceledException)
         {
-            // Expected when cancellation is requested
         }
         catch (Exception ex)
         {
@@ -186,8 +177,7 @@ public class MacroService : IDisposable
             {
                 _isRunning = false;
             }
-            
-            // Only raise status changed if we're not being explicitly stopped
+
             if (!cancellationToken.IsCancellationRequested)
             {
                 MacroStatusChanged?.Invoke(this, false);
@@ -199,12 +189,6 @@ public class MacroService : IDisposable
     {
         try
         {
-            if (!_isWindows)
-            {
-                MacroError?.Invoke(this, "Input simulation is only supported on Windows");
-                return;
-            }
-
             string clickKey;
             bool isToggleMode;
 
@@ -214,33 +198,90 @@ public class MacroService : IDisposable
                 isToggleMode = _isToggleMode;
             }
 
-#if WINDOWS
-            switch (clickKey.ToUpper())
+            if (_isWindows)
             {
-                case "MOUSE1":
-                case "LEFTBUTTON":
-                    SimulateMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
-                    break;
-                case "MOUSE2":
-                case "RIGHTBUTTON":
-                    SimulateMouseClick(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
-                    break;
-                case "MOUSE3":
-                case "MIDDLEBUTTON":
-                    SimulateMouseClick(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP);
-                    break;
-                default:
-                    // It's a keyboard key
-                    SimulateKeyPress(clickKey);
-                    break;
+                PerformClickWindows(clickKey);
             }
-#else
-            MacroError?.Invoke(this, "Input simulation is only supported on Windows");
-#endif
+            else if (_isLinux)
+            {
+                PerformClickLinux(clickKey);
+            }
         }
         catch (Exception ex)
         {
             MacroError?.Invoke(this, $"Click simulation failed: {ex.Message}");
+        }
+    }
+
+    private void PerformClickWindows(string clickKey)
+    {
+#if WINDOWS
+        switch (clickKey.ToUpper())
+        {
+            case "MOUSE1":
+            case "LEFTBUTTON":
+                SimulateMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                break;
+            case "MOUSE2":
+            case "RIGHTBUTTON":
+                SimulateMouseClick(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
+                break;
+            case "MOUSE3":
+            case "MIDDLEBUTTON":
+                SimulateMouseClick(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP);
+                break;
+            default:
+                SimulateKeyPress(clickKey);
+                break;
+        }
+#endif
+    }
+
+    private void PerformClickLinux(string clickKey)
+    {
+        string? clickArg = clickKey.ToUpper() switch
+        {
+            "MOUSE1" or "LEFTBUTTON" => "0xC0",
+            "MOUSE2" or "RIGHTBUTTON" => "0xC1",
+            "MOUSE3" or "MIDDLEBUTTON" => "0xC2",
+            _ => null
+        };
+
+        if (clickArg != null)
+        {
+            RunYdotool("click", clickArg);
+        }
+        else
+        {
+            int keycode = KeyToLinuxKeycode(clickKey);
+            if (keycode > 0)
+            {
+                RunYdotool("key", $"{keycode}:1 {keycode}:0");
+            }
+        }
+    }
+
+    private void RunYdotool(string command, string args)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ydotool",
+                Arguments = $"{command} {args}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+
+            using var process = Process.Start(psi);
+            process?.WaitForExit(500);
+        }
+        catch (Exception ex)
+        {
+            MacroError?.Invoke(this, $"ydotool execution failed: {ex.Message}");
         }
     }
 
@@ -250,7 +291,7 @@ public class MacroService : IDisposable
         try
         {
             mouse_event(downFlag, 0, 0, 0, 0);
-            Thread.Sleep(10); // Small delay between down and up
+            Thread.Sleep(10);
             mouse_event(upFlag, 0, 0, 0, 0);
         }
         catch (Exception ex)
@@ -267,7 +308,7 @@ public class MacroService : IDisposable
             if (vkCode != 0)
             {
                 keybd_event(vkCode, 0, 0, 0);
-                Thread.Sleep(10); // Small delay between down and up
+                Thread.Sleep(10);
                 keybd_event(vkCode, 0, KEYEVENTF_KEYUP, 0);
             }
         }
@@ -276,22 +317,81 @@ public class MacroService : IDisposable
             MacroError?.Invoke(this, $"Key press simulation failed: {ex.Message}");
         }
     }
-#else
-    private void SimulateMouseClick(uint downFlag, uint upFlag)
-    {
-        // Not supported on non-Windows platforms
-    }
-
-    private void SimulateKeyPress(string key)
-    {
-        // Not supported on non-Windows platforms
-    }
 #endif
+
+    private static int KeyToLinuxKeycode(string key)
+    {
+        var keyUpper = key.ToUpper().Replace(" ", "");
+
+        return keyUpper switch
+        {
+            "F1" => 59,
+            "F2" => 60,
+            "F3" => 61,
+            "F4" => 62,
+            "F5" => 63,
+            "F6" => 64,
+            "F7" => 65,
+            "F8" => 66,
+            "F9" => 67,
+            "F10" => 68,
+            "F11" => 87,
+            "F12" => 88,
+            "A" => 30,
+            "B" => 48,
+            "C" => 46,
+            "D" => 32,
+            "E" => 18,
+            "F" => 33,
+            "G" => 34,
+            "H" => 35,
+            "I" => 23,
+            "J" => 36,
+            "K" => 37,
+            "L" => 38,
+            "M" => 50,
+            "N" => 49,
+            "O" => 24,
+            "P" => 25,
+            "Q" => 16,
+            "R" => 19,
+            "S" => 31,
+            "T" => 20,
+            "U" => 22,
+            "V" => 47,
+            "W" => 17,
+            "X" => 45,
+            "Y" => 21,
+            "Z" => 44,
+            "0" => 11,
+            "1" => 2,
+            "2" => 3,
+            "3" => 4,
+            "4" => 5,
+            "5" => 6,
+            "6" => 7,
+            "7" => 8,
+            "8" => 9,
+            "9" => 10,
+            "SPACE" or "SPACEBAR" => 57,
+            "ENTER" or "RETURN" => 28,
+            "TAB" => 15,
+            "BACKSPACE" => 14,
+            "ESCAPE" or "ESC" => 1,
+            "LEFTSHIFT" or "LSHIFT" => 42,
+            "RIGHTSHIFT" or "RSHIFT" => 54,
+            "LEFTCONTROL" or "LCONTROL" or "LCTRL" => 29,
+            "RIGHTCONTROL" or "RCONTROL" or "RCTRL" => 97,
+            "LEFTALT" or "LALT" => 56,
+            "RIGHTALT" or "RALT" => 100,
+            _ => 0
+        };
+    }
 
     private byte KeyToVirtualKey(string key)
     {
         var keyUpper = key.ToUpper().Replace(" ", "");
-        
+
         return keyUpper switch
         {
             "F1" => 0x70,

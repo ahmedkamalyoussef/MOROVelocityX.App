@@ -219,6 +219,10 @@ public partial class MainWindowViewModel : ViewModelBase
             ClickKey = key;
             IsCapturingClickKey = false;
         }
+        else if (key == TriggerKey)
+        {
+            _globalHotkeyService.NotifyKeyPressed(key);
+        }
     }
 
     private void Start()
