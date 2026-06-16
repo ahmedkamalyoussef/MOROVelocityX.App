@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private string _triggerKey = "F1";
     private string _clickKey = "Mouse1";
+    private string _overlayToggleKey = "F2";
     private bool _isToggleMode = true;
     private bool _isHoldMode = false;
     private int _cps = 10;
@@ -44,6 +45,18 @@ public partial class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref _clickKey, value))
             {
                 UpdateMacroConfiguration();
+            }
+        }
+    }
+
+    public string OverlayToggleKey
+    {
+        get => _overlayToggleKey;
+        set
+        {
+            if (SetProperty(ref _overlayToggleKey, value))
+            {
+                _globalHotkeyService.RegisterAdditionalHotkey(value);
             }
         }
     }
@@ -117,17 +130,21 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly GlobalHotkeyService _globalHotkeyService;
     private readonly MacroService _macroService;
+    private readonly OverlayViewModel _overlayViewModel;
 
-    public MainWindowViewModel(GlobalHotkeyService globalHotkeyService, MacroService macroService)
+    public MainWindowViewModel(GlobalHotkeyService globalHotkeyService, MacroService macroService, OverlayViewModel overlayViewModel)
     {
         _globalHotkeyService = globalHotkeyService;
         _macroService = macroService;
+        _overlayViewModel = overlayViewModel;
         CaptureTriggerKeyCommand = new RelayCommand(CaptureTriggerKey);
         CaptureClickKeyCommand = new RelayCommand(CaptureClickKey);
         StartCommand = new RelayCommand(Start, CanStart);
         StopCommand = new RelayCommand(Stop, CanStop);
 
         _globalHotkeyService.RegisterHotkey(_triggerKey);
+        _globalHotkeyService.RegisterAdditionalHotkey(_overlayToggleKey);
+        _globalHotkeyService.RegisterAdditionalHotkey("F3");
         _globalHotkeyService.HotkeyPressed += OnGlobalHotkeyPressed;
         _globalHotkeyService.HotkeyReleased += OnGlobalHotkeyReleased;
 
@@ -150,10 +167,17 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnGlobalHotkeyPressed(object? sender, string key)
     {
         Console.WriteLine($"[DEBUG] OnGlobalHotkeyPressed: key={key}, TriggerKey={_triggerKey}, _isArmed={_isArmed}, IsToggleMode={IsToggleMode}");
-        if (key == TriggerKey && _isArmed)
+        if (key == _overlayToggleKey)
+        {
+            _overlayViewModel.ToggleVisibility();
+        }
+        else if (key == "F3")
+        {
+            _overlayViewModel.ToggleInteractive();
+        }
+        else if (key == TriggerKey && _isArmed)
         {
             Console.WriteLine("[DEBUG] Starting macro toggle/hold");
-            _macroService.ReleaseKey(TriggerKey);
             if (IsToggleMode)
             {
                 _macroService.StartToggleMode();
@@ -228,6 +252,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Console.WriteLine("[DEBUG] Start() called");
         _isArmed = true;
+        _globalHotkeyService.ShouldSuppressKey = ShouldSuppressTriggerKey;
+        _globalHotkeyService.SetKeyboardGrab(true);
         Status = ApplicationStatus.Running;
         ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
@@ -237,9 +263,13 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Console.WriteLine("[DEBUG] Stop() called");
         _isArmed = false;
+        _globalHotkeyService.ShouldSuppressKey = null;
+        _globalHotkeyService.SetKeyboardGrab(false);
         _macroService.Stop();
         Status = ApplicationStatus.Ready;
         ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
     }
+
+    private bool ShouldSuppressTriggerKey(string key) => _isArmed && key == TriggerKey;
 }

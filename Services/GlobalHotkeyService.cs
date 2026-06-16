@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -11,6 +12,7 @@ public class GlobalHotkeyService : IDisposable
 {
     private IntPtr _windowHandle;
     private string? _registeredKey;
+    private readonly HashSet<string> _registeredKeys = new();
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _hookProc;
     private readonly bool _isWindows;
@@ -19,6 +21,10 @@ public class GlobalHotkeyService : IDisposable
     private FileStream? _linuxEventStream;
     private CancellationTokenSource? _linuxCts;
     private Task? _linuxListenerTask;
+    private bool _keyboardGrabbed;
+    private static readonly string YdotoolSocket = "/tmp/ydotool.sock";
+
+    public Func<string, bool>? ShouldSuppressKey { get; set; }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct InputEvent
@@ -69,6 +75,10 @@ public class GlobalHotkeyService : IDisposable
     };
 
     private const ushort EV_KEY = 1;
+    private const uint EVIOCGRAB = 0x40044590;
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int ioctl(int fd, uint request, int arg);
 
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
@@ -152,6 +162,10 @@ public class GlobalHotkeyService : IDisposable
     {
         try
         {
+            if (_keyboardGrabbed)
+            {
+                SetKeyboardGrab(false);
+            }
             _linuxCts?.Cancel();
             _linuxListenerTask?.Wait(1000);
             _linuxEventStream?.Dispose();
@@ -201,27 +215,32 @@ public class GlobalHotkeyService : IDisposable
 
                 InputEvent evt = MemoryMarshal.Read<InputEvent>(buffer);
 
-                if (evt.type == EV_KEY)
+                if (evt.type == EV_KEY && (evt.value == 0 || evt.value == 1))
                 {
                     string? keyName = LinuxKeyCodeToName.GetValueOrDefault(evt.code);
-                    if (keyName != null && (evt.value == 0 || evt.value == 1))
+                    if (keyName != null)
                     {
                         Console.WriteLine($"[DEBUG] evdev: {keyName} code=0x{evt.code:x} val={evt.value} registered={_registeredKey}");
                     }
 
+                    bool suppress = keyName != null && ShouldSuppressKey?.Invoke(keyName) == true;
+
+                    if (_keyboardGrabbed && !suppress)
+                    {
+                        ReinjectLinuxKey(evt.code, evt.value);
+                    }
+
                     if (keyName == null) continue;
 
-                    bool isTrigger = !string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey;
-
-                    if (isTrigger)
+                    if (_registeredKeys.Count > 0 && _registeredKeys.Contains(keyName))
                     {
                         if (evt.value == 1)
                         {
-                            HotkeyPressed?.Invoke(this, _registeredKey);
+                            HotkeyPressed?.Invoke(this, keyName);
                         }
                         else if (evt.value == 0)
                         {
-                            HotkeyReleased?.Invoke(this, _registeredKey);
+                            HotkeyReleased?.Invoke(this, keyName);
                         }
                     }
                 }
@@ -255,15 +274,20 @@ public class GlobalHotkeyService : IDisposable
             int vkCode = Marshal.ReadInt32(lParam);
             string keyName = VirtualKeyToString(vkCode);
 
-            if (!string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey)
+            if (_registeredKeys.Count > 0 && _registeredKeys.Contains(keyName))
             {
                 if (wParam == (IntPtr)0x0100)
                 {
-                    HotkeyPressed?.Invoke(this, _registeredKey);
+                    HotkeyPressed?.Invoke(this, keyName);
                 }
                 else if (wParam == (IntPtr)0x0101)
                 {
-                    HotkeyReleased?.Invoke(this, _registeredKey);
+                    HotkeyReleased?.Invoke(this, keyName);
+                }
+
+                if (ShouldSuppressKey?.Invoke(keyName) == true)
+                {
+                    return (IntPtr)1;
                 }
             }
         }
@@ -274,15 +298,57 @@ public class GlobalHotkeyService : IDisposable
     public void RegisterHotkey(string key)
     {
         _registeredKey = key;
+        _registeredKeys.Add(key);
     }
 
     public void UnregisterHotkey()
     {
         _registeredKey = null;
+        _registeredKeys.Clear();
+    }
+
+    public void RegisterAdditionalHotkey(string key)
+    {
+        _registeredKeys.Add(key);
     }
 
     public void SetKeyboardGrab(bool grab)
     {
+        if (!_isLinux || _linuxEventStream == null)
+            return;
+
+        try
+        {
+            int fd = _linuxEventStream.SafeFileHandle.DangerousGetHandle().ToInt32();
+            int result = ioctl(fd, EVIOCGRAB, grab ? 1 : 0);
+            _keyboardGrabbed = grab && result == 0;
+            Console.WriteLine($"[DEBUG] SetKeyboardGrab({grab}): result={result}, grabbed={_keyboardGrabbed}");
+        }
+        catch (Exception ex)
+        {
+            _keyboardGrabbed = false;
+            Console.WriteLine($"[DEBUG] SetKeyboardGrab failed: {ex.Message}");
+        }
+    }
+
+    private static void ReinjectLinuxKey(ushort code, int value)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ydotool",
+                Arguments = $"key {code}:{value}",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG] ReinjectLinuxKey failed: {ex.Message}");
+        }
     }
 
     private string VirtualKeyToString(int vkCode)
