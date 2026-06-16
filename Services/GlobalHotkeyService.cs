@@ -70,6 +70,9 @@ public class GlobalHotkeyService : IDisposable
 
     private const ushort EV_KEY = 1;
 
+    [DllImport("libc", SetLastError = true)]
+    private static extern int ioctl(int fd, uint request, int value);
+
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -83,6 +86,7 @@ public class GlobalHotkeyService : IDisposable
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     private const int WH_KEYBOARD_LL = 13;
+    private const uint EVIOCGRAB = 0x80044590;
 
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -204,6 +208,11 @@ public class GlobalHotkeyService : IDisposable
                 if (evt.type == EV_KEY)
                 {
                     string? keyName = LinuxKeyCodeToName.GetValueOrDefault(evt.code);
+                    if (keyName != null && (evt.value == 0 || evt.value == 1))
+                    {
+                        Console.WriteLine($"[DEBUG] evdev: {keyName} code=0x{evt.code:x} val={evt.value} registered={_registeredKey}");
+                    }
+
                     if (keyName == null) continue;
 
                     if (!string.IsNullOrEmpty(_registeredKey) && keyName == _registeredKey)
@@ -228,6 +237,21 @@ public class GlobalHotkeyService : IDisposable
                 Console.WriteLine($"[DEBUG] LinuxKeyListenerLoop error: {ex.Message}");
                 Thread.Sleep(100);
             }
+        }
+    }
+
+    public void SetKeyboardGrab(bool grab)
+    {
+        if (!_isLinux || _linuxEventStream?.SafeFileHandle == null) return;
+        try
+        {
+            int fd = (int)_linuxEventStream.SafeFileHandle.DangerousGetHandle();
+            int result = ioctl(fd, EVIOCGRAB, grab ? 1 : 0);
+            Console.WriteLine($"[DEBUG] EVIOCGRAB({grab}) = {result}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG] EVIOCGRAB error: {ex.Message}");
         }
     }
 

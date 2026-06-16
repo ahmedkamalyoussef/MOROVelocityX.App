@@ -159,6 +159,8 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             else
             {
+                _globalHotkeyService.SetKeyboardGrab(true);
+                _macroService.ReleaseKey(TriggerKey);
                 _macroService.StartHoldMode();
             }
         }
@@ -169,6 +171,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (key == TriggerKey && _isArmed && IsHoldMode)
         {
             _macroService.StopHoldMode();
+            _globalHotkeyService.SetKeyboardGrab(false);
         }
     }
 
@@ -237,6 +240,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Console.WriteLine("[DEBUG] Stop() called");
         _isArmed = false;
         _macroService.Stop();
+        _globalHotkeyService.SetKeyboardGrab(false);
         Status = ApplicationStatus.Ready;
         ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
         ((RelayCommand)StopCommand).NotifyCanExecuteChanged();

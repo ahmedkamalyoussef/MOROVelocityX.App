@@ -67,14 +67,17 @@ public class MacroService : IDisposable
 
     public void StartToggleMode()
     {
+        Console.WriteLine($"[DEBUG] StartToggleMode: _isRunning={_isRunning}");
         lock (_lock)
         {
             if (_isRunning)
             {
+                Console.WriteLine("[DEBUG] StartToggleMode: calling Stop()");
                 Stop();
             }
             else
             {
+                Console.WriteLine("[DEBUG] StartToggleMode: calling Start()");
                 Start();
             }
         }
@@ -82,10 +85,12 @@ public class MacroService : IDisposable
 
     public void StartHoldMode()
     {
+        Console.WriteLine($"[DEBUG] StartHoldMode: _isRunning={_isRunning}, _isHoldMode={_isHoldMode}");
         lock (_lock)
         {
             if (!_isRunning)
             {
+                Console.WriteLine("[DEBUG] StartHoldMode: calling Start()");
                 Start();
             }
         }
@@ -93,10 +98,12 @@ public class MacroService : IDisposable
 
     public void StopHoldMode()
     {
+        Console.WriteLine($"[DEBUG] StopHoldMode: _isRunning={_isRunning}, _isHoldMode={_isHoldMode}");
         lock (_lock)
         {
             if (_isRunning && _isHoldMode)
             {
+                Console.WriteLine("[DEBUG] StopHoldMode: calling Stop()");
                 Stop();
             }
         }
@@ -150,6 +157,18 @@ public class MacroService : IDisposable
         }
     }
 
+    public void ReleaseKey(string key)
+    {
+        if (_isLinux)
+        {
+            int keycode = KeyToLinuxKeycode(key);
+            if (keycode > 0)
+            {
+                RunYdotool("key", $"{keycode}:0");
+            }
+        }
+    }
+
     private async Task RunMacroAsync(CancellationToken cancellationToken)
     {
         try
@@ -178,13 +197,12 @@ public class MacroService : IDisposable
         }
         finally
         {
-            lock (_lock)
-            {
-                _isRunning = false;
-            }
-
             if (!cancellationToken.IsCancellationRequested)
             {
+                lock (_lock)
+                {
+                    _isRunning = false;
+                }
                 MacroStatusChanged?.Invoke(this, false);
             }
         }
