@@ -6,13 +6,13 @@ namespace MOROVelocityX.Services;
 
 public class GlobalHotkeyService : IDisposable
 {
-    private const int WH_KEYBOARD_LL = 13;
     private IntPtr _windowHandle;
     private string? _registeredKey;
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _hookProc;
     private bool _isWindows;
 
+    // Windows APIs
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -25,13 +25,18 @@ public class GlobalHotkeyService : IDisposable
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
+    private const int WH_KEYBOARD_LL = 13;
+
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     public event EventHandler<string>? HotkeyPressed;
 
+    public bool IsGlobalHotkeySupported { get; private set; }
+
     public GlobalHotkeyService()
     {
         _isWindows = OperatingSystem.IsWindows();
+        IsGlobalHotkeySupported = _isWindows;
     }
 
     public void Initialize(IntPtr windowHandle)
@@ -45,9 +50,6 @@ public class GlobalHotkeyService : IDisposable
 
     private void StartKeyMonitoring()
     {
-        if (!_isWindows)
-            return;
-
         try
         {
             _hookProc = HookCallback;
@@ -55,7 +57,8 @@ public class GlobalHotkeyService : IDisposable
         }
         catch
         {
-            // Ignore errors on non-Windows systems
+            // Ignore errors - global hotkeys not available
+            IsGlobalHotkeySupported = false;
         }
     }
 

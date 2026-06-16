@@ -1,6 +1,7 @@
 ﻿using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using MOROVelocityX.Services;
+using System;
 
 namespace MOROVelocityX.ViewModels;
 
@@ -37,7 +38,13 @@ public partial class MainWindowViewModel : ViewModelBase
     public string ClickKey
     {
         get => _clickKey;
-        set => SetProperty(ref _clickKey, value);
+        set
+        {
+            if (SetProperty(ref _clickKey, value))
+            {
+                UpdateMacroConfiguration();
+            }
+        }
     }
 
     public bool IsToggleMode
@@ -45,8 +52,11 @@ public partial class MainWindowViewModel : ViewModelBase
         get => _isToggleMode;
         set
         {
-            SetProperty(ref _isToggleMode, value);
-            if (value) IsHoldMode = false;
+            if (SetProperty(ref _isToggleMode, value))
+            {
+                if (value) IsHoldMode = false;
+                UpdateMacroConfiguration();
+            }
         }
     }
 
@@ -55,15 +65,24 @@ public partial class MainWindowViewModel : ViewModelBase
         get => _isHoldMode;
         set
         {
-            SetProperty(ref _isHoldMode, value);
-            if (value) IsToggleMode = false;
+            if (SetProperty(ref _isHoldMode, value))
+            {
+                if (value) IsToggleMode = false;
+                UpdateMacroConfiguration();
+            }
         }
     }
 
     public int CPS
     {
         get => _cps;
-        set => SetProperty(ref _cps, value);
+        set
+        {
+            if (SetProperty(ref _cps, value))
+            {
+                UpdateMacroConfiguration();
+            }
+        }
     }
 
     public ApplicationStatus Status
@@ -96,27 +115,86 @@ public partial class MainWindowViewModel : ViewModelBase
     public ICommand StopCommand { get; }
 
     private readonly GlobalHotkeyService _globalHotkeyService;
+    private readonly MacroService _macroService;
 
-    public MainWindowViewModel(GlobalHotkeyService globalHotkeyService)
+    public MainWindowViewModel(GlobalHotkeyService globalHotkeyService, MacroService macroService)
     {
         _globalHotkeyService = globalHotkeyService;
+        _macroService = macroService;
         CaptureTriggerKeyCommand = new RelayCommand(CaptureTriggerKey);
         CaptureClickKeyCommand = new RelayCommand(CaptureClickKey);
-        StartCommand = new RelayCommand(Start);
-        StopCommand = new RelayCommand(Stop);
+        StartCommand = new RelayCommand(Start, CanStart);
+        StopCommand = new RelayCommand(Stop, CanStop);
 
         // Subscribe to global hotkey events
         _globalHotkeyService.HotkeyPressed += OnGlobalHotkeyPressed;
+        
+        // Subscribe to macro service events
+        _macroService.MacroStatusChanged += OnMacroStatusChanged;
+        _macroService.MacroError += OnMacroError;
+        
+        // Configure macro service with initial settings
+        UpdateMacroConfiguration();
+    }
+
+    private bool CanStart()
+    {
+        return _macroService.IsInputSimulationSupported && !_macroService.IsRunning;
+    }
+
+    private bool CanStop()
+    {
+        return _macroService.IsInputSimulationSupported && _macroService.IsRunning;
     }
 
     private void OnGlobalHotkeyPressed(object? sender, string key)
     {
         // Handle global hotkey press (trigger key)
-        // For now, just detect it - no macro logic yet
         if (key == TriggerKey)
         {
-            // TODO: Implement macro toggle logic when trigger key is pressed globally
+            if (IsToggleMode)
+            {
+                _macroService.StartToggleMode();
+            }
+            else
+            {
+                _macroService.StartHoldMode();
+            }
         }
+    }
+
+    private void OnMacroStatusChanged(object? sender, bool isRunning)
+    {
+        if (isRunning)
+        {
+            Status = ApplicationStatus.Running;
+        }
+        else
+        {
+            Status = ApplicationStatus.Stopped;
+        }
+        
+        // Notify command execution state changes
+        ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
+        ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
+    }
+
+    private void OnMacroError(object? sender, string error)
+    {
+        // Handle macro errors - could show in UI
+        try
+        {
+            Status = ApplicationStatus.Stopped;
+        }
+        catch
+        {
+            // Ignore errors in status update
+        }
+    }
+
+    private void UpdateMacroConfiguration()
+    {
+        _macroService.Configure(IsToggleMode, CPS, ClickKey);
     }
 
     private void CaptureTriggerKey()
@@ -145,11 +223,26 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void Start()
     {
-        Status = ApplicationStatus.Running;
+        try
+        {
+            if (IsToggleMode)
+            {
+                _macroService.StartToggleMode();
+            }
+            else
+            {
+                _macroService.StartHoldMode();
+            }
+        }
+        catch
+        {
+            // Handle errors silently
+            Status = ApplicationStatus.Stopped;
+        }
     }
 
     private void Stop()
     {
-        Status = ApplicationStatus.Stopped;
+        _macroService.Stop();
     }
 }

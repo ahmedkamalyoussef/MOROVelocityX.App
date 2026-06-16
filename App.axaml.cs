@@ -13,6 +13,7 @@ namespace MOROVelocityX;
 public partial class App : Application
 {
     private GlobalHotkeyService? _globalHotkeyService;
+    private MacroService? _macroService;
 
     public override void Initialize()
     {
@@ -28,9 +29,10 @@ public partial class App : Application
             DisableAvaloniaDataAnnotationValidation();
             
             _globalHotkeyService = new GlobalHotkeyService();
+            _macroService = new MacroService();
             
             var mainWindow = new MainWindow();
-            var viewModel = new MainWindowViewModel(_globalHotkeyService);
+            var viewModel = new MainWindowViewModel(_globalHotkeyService, _macroService);
             mainWindow.DataContext = viewModel;
             desktop.MainWindow = mainWindow;
             
