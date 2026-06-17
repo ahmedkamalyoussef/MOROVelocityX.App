@@ -8,17 +8,29 @@ namespace MOROVelocityX.Services;
 
 public class MacroService : IDisposable
 {
-    private bool _isRunning;
+    private enum ClickAction
+    {
+        MouseLeft,
+        MouseRight,
+        MouseMiddle,
+        Keyboard
+    }
+
+    private volatile bool _isRunning;
     private bool _isToggleMode;
     private bool _isHoldMode;
-    private int _cps;
-    private string _clickKey;
-    private CancellationTokenSource? _cancellationTokenSource;
-    private Task? _macroTask;
-    private readonly object _lock = new object();
+    private volatile int _cps;
+    private ClickAction _clickAction;
+    private byte _keyboardVk;
+    private Thread? _macroThread;
+    private readonly object _lock = new();
     private readonly bool _isWindows;
     private readonly bool _isLinux;
     private static readonly string YdotoolSocket = "/tmp/ydotool.sock";
+
+    private readonly INPUT[] _mouseInputs = new INPUT[2];
+    private readonly INPUT[] _keyInputs = new INPUT[2];
+    private static readonly int InputSize = Marshal.SizeOf<INPUT>();
 
     public StatsService? StatsService { get; set; }
 
@@ -30,11 +42,10 @@ public class MacroService : IDisposable
 
     public MacroService()
     {
-        _isRunning = false;
         _isToggleMode = true;
         _isHoldMode = false;
         _cps = 10;
-        _clickKey = "Mouse1";
+        _clickAction = ClickAction.MouseLeft;
         _isWindows = OperatingSystem.IsWindows();
         _isLinux = OperatingSystem.IsLinux();
         IsInputSimulationSupported = _isWindows || _isLinux;
@@ -78,6 +89,12 @@ public class MacroService : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+    [DllImport("winmm.dll")]
+    private static extern uint timeBeginPeriod(uint uPeriod);
+
+    [DllImport("winmm.dll")]
+    private static extern uint timeEndPeriod(uint uPeriod);
+
     private const uint INPUT_MOUSE = 0;
     private const uint INPUT_KEYBOARD = 1;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
@@ -95,81 +112,122 @@ public class MacroService : IDisposable
             _isToggleMode = isToggleMode;
             _isHoldMode = !isToggleMode;
             _cps = Math.Clamp(cps, 1, 500);
-            _clickKey = clickKey;
+            UpdateClickAction(clickKey);
         }
     }
 
     public void StartToggleMode()
     {
-        lock (_lock)
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            if (_isRunning)
-                Stop();
-            else
-                Start();
-        }
+            lock (_lock)
+            {
+                if (_isRunning)
+                    StopLocked();
+                else
+                    StartLocked();
+            }
+        });
     }
 
     public void StartHoldMode()
     {
-        lock (_lock)
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            if (!_isRunning)
-                Start();
-        }
+            lock (_lock)
+            {
+                if (!_isRunning)
+                    StartLocked();
+            }
+        });
     }
 
     public void StopHoldMode()
     {
-        lock (_lock)
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            if (_isRunning && _isHoldMode)
-                Stop();
-        }
+            lock (_lock)
+            {
+                if (_isRunning && _isHoldMode)
+                    StopLocked();
+            }
+        });
     }
 
-    private void Start()
+    private void StartLocked()
     {
-        lock (_lock)
-        {
-            if (_isRunning)
-                return;
+        if (_isRunning)
+            return;
 
-            _isRunning = true;
-            _cancellationTokenSource = new CancellationTokenSource();
-            _macroTask = RunMacroAsync(_cancellationTokenSource.Token);
-            MacroStatusChanged?.Invoke(this, true);
-        }
+        _isRunning = true;
+        _macroThread = new Thread(RunMacroLoop)
+        {
+            IsBackground = true,
+            Priority = ThreadPriority.AboveNormal,
+            Name = "MacroLoop"
+        };
+        _macroThread.Start();
+        MacroStatusChanged?.Invoke(this, true);
+    }
+
+    private void StopLocked()
+    {
+        if (!_isRunning)
+            return;
+
+        _isRunning = false;
+        ReleaseClickKey();
+        MacroStatusChanged?.Invoke(this, false);
     }
 
     public void Stop()
     {
         lock (_lock)
         {
-            if (!_isRunning)
-                return;
+            StopLocked();
+        }
+    }
+
+    private void RunMacroLoop()
+    {
+        if (_isWindows)
+            timeBeginPeriod(1);
+
+        try
+        {
+            var sw = Stopwatch.StartNew();
+            long nextClickTicks = sw.ElapsedTicks;
+
+            while (_isRunning)
+            {
+                PerformClick();
+
+                int cps = Math.Max(1, _cps);
+                long intervalTicks = Stopwatch.Frequency / cps;
+                nextClickTicks += intervalTicks;
+
+                long remainingTicks = nextClickTicks - sw.ElapsedTicks;
+                if (remainingTicks <= 0)
+                    continue;
+
+                long sleepMs = remainingTicks * 1000 / Stopwatch.Frequency;
+                if (sleepMs > 1)
+                    Thread.Sleep((int)(sleepMs - 1));
+
+                while (_isRunning && sw.ElapsedTicks < nextClickTicks)
+                    Thread.SpinWait(50);
+            }
+        }
+        catch (Exception ex)
+        {
+            MacroError?.Invoke(this, ex.Message);
+        }
+        finally
+        {
+            if (_isWindows)
+                timeEndPeriod(1);
 
             _isRunning = false;
-            _cancellationTokenSource?.Cancel();
-
-            try
-            {
-                _macroTask?.Wait(TimeSpan.FromSeconds(2));
-            }
-            catch (AggregateException)
-            {
-            }
-            catch (OperationCanceledException)
-            {
-            }
-
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-            _macroTask = null;
-
-            ReleaseClickKey();
-
-            MacroStatusChanged?.Invoke(this, false);
         }
     }
 
@@ -178,29 +236,28 @@ public class MacroService : IDisposable
         if (!_isLinux)
             return;
 
-        string clickKey;
-        lock (_lock)
+        int keycode = _clickAction switch
         {
-            clickKey = _clickKey;
-        }
+            ClickAction.Keyboard => KeyToLinuxKeycodeFromVk(_keyboardVk),
+            _ => 0
+        };
 
-        int keycode = KeyToLinuxKeycode(clickKey);
-        if (keycode > 0)
+        if (keycode <= 0)
+            return;
+
+        try
         {
-            try
+            var psi = new ProcessStartInfo
             {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "ydotool",
-                    Arguments = $"key {keycode}:0",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-                Process.Start(psi);
-            }
-            catch { }
+                FileName = "ydotool",
+                Arguments = $"key {keycode}:0",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+            Process.Start(psi);
         }
+        catch { }
     }
 
     public void ReleaseKey(string key)
@@ -209,85 +266,34 @@ public class MacroService : IDisposable
             return;
 
         int keycode = KeyToLinuxKeycode(key);
-        if (keycode > 0)
-        {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "ydotool",
-                    Arguments = $"key {keycode}:0",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-                Process.Start(psi);
-            }
-            catch { }
-        }
-    }
+        if (keycode <= 0)
+            return;
 
-    private async Task RunMacroAsync(CancellationToken cancellationToken)
-    {
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            var psi = new ProcessStartInfo
             {
-                lock (_lock)
-                {
-                    if (!_isRunning)
-                        break;
-                }
-
-                PerformClick();
-
-                int cps;
-                lock (_lock)
-                {
-                    cps = _cps;
-                }
-
-                int delayMs = Math.Max(1, 1000 / Math.Max(1, cps));
-                await Task.Delay(delayMs, cancellationToken);
-            }
+                FileName = "ydotool",
+                Arguments = $"key {keycode}:0",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+            Process.Start(psi);
         }
-        catch (TaskCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            MacroError?.Invoke(this, ex.Message);
-        }
-        finally
-        {
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                lock (_lock)
-                {
-                    _isRunning = false;
-                }
-                MacroStatusChanged?.Invoke(this, false);
-            }
-        }
+        catch { }
     }
 
     private void PerformClick()
     {
         try
         {
-            string clickKey;
-
-            lock (_lock)
-            {
-                clickKey = _clickKey;
-            }
-
             StatsService?.RecordClick();
 
             if (_isWindows)
-                PerformClickWindows(clickKey);
+                PerformClickWindows();
             else if (_isLinux)
-                PerformClickLinux(clickKey);
+                PerformClickLinux();
         }
         catch (Exception ex)
         {
@@ -295,45 +301,44 @@ public class MacroService : IDisposable
         }
     }
 
-    private void PerformClickWindows(string clickKey)
+    private void PerformClickWindows()
     {
-        switch (clickKey.ToUpper())
+        switch (_clickAction)
         {
-            case "MOUSE1":
-            case "LEFTBUTTON":
-                SimulateMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+            case ClickAction.MouseLeft:
+                SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
                 break;
-            case "MOUSE2":
-            case "RIGHTBUTTON":
-                SimulateMouseClick(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
+            case ClickAction.MouseRight:
+                SendMouseClick(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
                 break;
-            case "MOUSE3":
-            case "MIDDLEBUTTON":
-                SimulateMouseClick(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP);
+            case ClickAction.MouseMiddle:
+                SendMouseClick(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP);
                 break;
-            default:
-                SimulateKeyPress(clickKey);
+            case ClickAction.Keyboard:
+                SendKeyPress(_keyboardVk);
                 break;
         }
     }
 
-    private void PerformClickLinux(string clickKey)
+    private void PerformClickLinux()
     {
-        string? clickArg = clickKey.ToUpper() switch
+        string? clickArg = _clickAction switch
         {
-            "MOUSE1" or "LEFTBUTTON" => "0xC0",
-            "MOUSE2" or "RIGHTBUTTON" => "0xC1",
-            "MOUSE3" or "MIDDLEBUTTON" => "0xC2",
+            ClickAction.MouseLeft => "0xC0",
+            ClickAction.MouseRight => "0xC1",
+            ClickAction.MouseMiddle => "0xC2",
             _ => null
         };
 
         if (clickArg != null)
         {
             RunYdotool("click", clickArg);
+            return;
         }
-        else
+
+        if (_clickAction == ClickAction.Keyboard)
         {
-            int keycode = KeyToLinuxKeycode(clickKey);
+            int keycode = KeyToLinuxKeycodeFromVk(_keyboardVk);
             if (keycode > 0)
                 RunYdotool("key", $"{keycode}:1 {keycode}:0");
         }
@@ -347,15 +352,12 @@ public class MacroService : IDisposable
             {
                 FileName = "ydotool",
                 Arguments = $"{command} {args}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
             psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-
             using var process = Process.Start(psi);
-            process?.WaitForExit(500);
+            process?.WaitForExit(100);
         }
         catch (Exception ex)
         {
@@ -363,117 +365,83 @@ public class MacroService : IDisposable
         }
     }
 
-    private void SimulateMouseClick(uint downFlag, uint upFlag)
+    private void SendMouseClick(uint downFlag, uint upFlag)
     {
-        if (!_isWindows)
-            return;
+        _mouseInputs[0] = new INPUT
+        {
+            type = INPUT_MOUSE,
+            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = downFlag } }
+        };
+        _mouseInputs[1] = new INPUT
+        {
+            type = INPUT_MOUSE,
+            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = upFlag } }
+        };
+        SendInput(2, _mouseInputs, InputSize);
+    }
 
-        try
+    private void SendKeyPress(byte vkCode)
+    {
+        _keyInputs[0] = new INPUT
         {
-            var inputs = new INPUT[]
-            {
-                new() { type = INPUT_MOUSE, U = new InputUnion { mi = new MOUSEINPUT { dwFlags = downFlag } } },
-                new() { type = INPUT_MOUSE, U = new InputUnion { mi = new MOUSEINPUT { dwFlags = upFlag } } }
-            };
-            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
-        }
-        catch (Exception ex)
+            type = INPUT_KEYBOARD,
+            U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode } }
+        };
+        _keyInputs[1] = new INPUT
         {
-            MacroError?.Invoke(this, $"Mouse click simulation failed: {ex.Message}");
+            type = INPUT_KEYBOARD,
+            U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode, dwFlags = KEYEVENTF_KEYUP } }
+        };
+        SendInput(2, _keyInputs, InputSize);
+    }
+
+    private void UpdateClickAction(string clickKey)
+    {
+        switch (clickKey.ToUpper())
+        {
+            case "MOUSE1":
+            case "LEFTBUTTON":
+                _clickAction = ClickAction.MouseLeft;
+                break;
+            case "MOUSE2":
+            case "RIGHTBUTTON":
+                _clickAction = ClickAction.MouseRight;
+                break;
+            case "MOUSE3":
+            case "MIDDLEBUTTON":
+                _clickAction = ClickAction.MouseMiddle;
+                break;
+            default:
+                _clickAction = ClickAction.Keyboard;
+                _keyboardVk = KeyToVirtualKey(clickKey);
+                break;
         }
     }
 
-    private void SimulateKeyPress(string key)
+    private static int KeyToLinuxKeycodeFromVk(byte vk)
     {
-        if (!_isWindows)
-            return;
-
-        try
+        return vk switch
         {
-            byte vkCode = KeyToVirtualKey(key);
-            if (vkCode == 0)
-                return;
-
-            var inputs = new INPUT[]
-            {
-                new() { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode } } },
-                new() { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vkCode, dwFlags = KEYEVENTF_KEYUP } } }
-            };
-            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
-        }
-        catch (Exception ex)
-        {
-            MacroError?.Invoke(this, $"Key press simulation failed: {ex.Message}");
-        }
+            0x70 => 59, 0x71 => 60, 0x72 => 61, 0x73 => 62,
+            0x74 => 63, 0x75 => 64, 0x76 => 65, 0x77 => 66,
+            0x78 => 67, 0x79 => 68, 0x7A => 87, 0x7B => 88,
+            0x41 => 30, 0x42 => 48, 0x43 => 46, 0x44 => 32,
+            0x45 => 18, 0x46 => 33, 0x47 => 34, 0x48 => 35,
+            0x49 => 23, 0x4A => 36, 0x4B => 37, 0x4C => 38,
+            0x4D => 50, 0x4E => 49, 0x4F => 24, 0x50 => 25,
+            0x51 => 16, 0x52 => 19, 0x53 => 31, 0x54 => 20,
+            0x55 => 22, 0x56 => 47, 0x57 => 17, 0x58 => 45,
+            0x59 => 21, 0x5A => 44,
+            0x30 => 11, 0x31 => 2, 0x32 => 3, 0x33 => 4,
+            0x34 => 5, 0x35 => 6, 0x36 => 7, 0x37 => 8,
+            0x38 => 9, 0x39 => 10,
+            _ => 0
+        };
     }
 
     private static int KeyToLinuxKeycode(string key)
     {
-        var keyUpper = key.ToUpper().Replace(" ", "");
-
-        return keyUpper switch
-        {
-            "F1" => 59,
-            "F2" => 60,
-            "F3" => 61,
-            "F4" => 62,
-            "F5" => 63,
-            "F6" => 64,
-            "F7" => 65,
-            "F8" => 66,
-            "F9" => 67,
-            "F10" => 68,
-            "F11" => 87,
-            "F12" => 88,
-            "A" => 30,
-            "B" => 48,
-            "C" => 46,
-            "D" => 32,
-            "E" => 18,
-            "F" => 33,
-            "G" => 34,
-            "H" => 35,
-            "I" => 23,
-            "J" => 36,
-            "K" => 37,
-            "L" => 38,
-            "M" => 50,
-            "N" => 49,
-            "O" => 24,
-            "P" => 25,
-            "Q" => 16,
-            "R" => 19,
-            "S" => 31,
-            "T" => 20,
-            "U" => 22,
-            "V" => 47,
-            "W" => 17,
-            "X" => 45,
-            "Y" => 21,
-            "Z" => 44,
-            "0" => 11,
-            "1" => 2,
-            "2" => 3,
-            "3" => 4,
-            "4" => 5,
-            "5" => 6,
-            "6" => 7,
-            "7" => 8,
-            "8" => 9,
-            "9" => 10,
-            "SPACE" or "SPACEBAR" => 57,
-            "ENTER" or "RETURN" => 28,
-            "TAB" => 15,
-            "BACKSPACE" => 14,
-            "ESCAPE" or "ESC" => 1,
-            "LEFTSHIFT" or "LSHIFT" => 42,
-            "RIGHTSHIFT" or "RSHIFT" => 54,
-            "LEFTCONTROL" or "LCONTROL" or "LCTRL" => 29,
-            "RIGHTCONTROL" or "RCONTROL" or "RCTRL" => 97,
-            "LEFTALT" or "LALT" => 56,
-            "RIGHTALT" or "RALT" => 100,
-            _ => 0
-        };
+        return KeyToLinuxKeycodeFromVk(KeyToVirtualKey(key));
     }
 
     private static byte KeyToVirtualKey(string key)
@@ -482,54 +450,20 @@ public class MacroService : IDisposable
 
         return keyUpper switch
         {
-            "F1" => 0x70,
-            "F2" => 0x71,
-            "F3" => 0x72,
-            "F4" => 0x73,
-            "F5" => 0x74,
-            "F6" => 0x75,
-            "F7" => 0x76,
-            "F8" => 0x77,
-            "F9" => 0x78,
-            "F10" => 0x79,
-            "F11" => 0x7A,
-            "F12" => 0x7B,
-            "A" => 0x41,
-            "B" => 0x42,
-            "C" => 0x43,
-            "D" => 0x44,
-            "E" => 0x45,
-            "F" => 0x46,
-            "G" => 0x47,
-            "H" => 0x48,
-            "I" => 0x49,
-            "J" => 0x4A,
-            "K" => 0x4B,
-            "L" => 0x4C,
-            "M" => 0x4D,
-            "N" => 0x4E,
-            "O" => 0x4F,
-            "P" => 0x50,
-            "Q" => 0x51,
-            "R" => 0x52,
-            "S" => 0x53,
-            "T" => 0x54,
-            "U" => 0x55,
-            "V" => 0x56,
-            "W" => 0x57,
-            "X" => 0x58,
-            "Y" => 0x59,
-            "Z" => 0x5A,
-            "0" => 0x30,
-            "1" => 0x31,
-            "2" => 0x32,
-            "3" => 0x33,
-            "4" => 0x34,
-            "5" => 0x35,
-            "6" => 0x36,
-            "7" => 0x37,
-            "8" => 0x38,
-            "9" => 0x39,
+            "F1" => 0x70, "F2" => 0x71, "F3" => 0x72, "F4" => 0x73,
+            "F5" => 0x74, "F6" => 0x75, "F7" => 0x76, "F8" => 0x77,
+            "F9" => 0x78, "F10" => 0x79, "F11" => 0x7A, "F12" => 0x7B,
+            "A" => 0x41, "B" => 0x42, "C" => 0x43, "D" => 0x44,
+            "E" => 0x45, "F" => 0x46, "G" => 0x47, "H" => 0x48,
+            "I" => 0x49, "J" => 0x4A, "K" => 0x4B, "L" => 0x4C,
+            "M" => 0x4D, "N" => 0x4E, "O" => 0x4F, "P" => 0x50,
+            "Q" => 0x51, "R" => 0x52, "S" => 0x53, "T" => 0x54,
+            "U" => 0x55, "V" => 0x56, "W" => 0x57, "X" => 0x58,
+            "Y" => 0x59, "Z" => 0x5A,
+            "0" => 0x30, "1" => 0x31, "2" => 0x32, "3" => 0x33,
+            "4" => 0x34, "5" => 0x35, "6" => 0x36, "7" => 0x37,
+            "8" => 0x38, "9" => 0x39,
+            "SPACE" or "SPACEBAR" => 0x20,
             _ => 0
         };
     }
@@ -537,5 +471,6 @@ public class MacroService : IDisposable
     public void Dispose()
     {
         Stop();
+        _macroThread?.Join(500);
     }
 }

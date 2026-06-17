@@ -71,6 +71,3 @@
 /home/kemo/Development/Work/Freelance/MOROVelocityX/obj/Release/net8.0/MOROVelocityX.pdb
 /home/kemo/Development/Work/Freelance/MOROVelocityX/obj/Release/net8.0/MOROVelocityX.genruntimeconfig.cache
 /home/kemo/Development/Work/Freelance/MOROVelocityX/obj/Release/net8.0/ref/MOROVelocityX.dll
-/home/kemo/Development/Work/Freelance/MOROVelocityX/bin/Release/net8.0/Avalonia.Controls.ColorPicker.dll
-/home/kemo/Development/Work/Freelance/MOROVelocityX/bin/Release/net8.0/Avalonia.Diagnostics.dll
-/home/kemo/Development/Work/Freelance/MOROVelocityX/bin/Release/net8.0/Avalonia.Themes.Simple.dll

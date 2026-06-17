@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Input;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using MOROVelocityX.Models;
 using MOROVelocityX.Services;
@@ -198,7 +199,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnGlobalHotkeyPressed(object? sender, string key)
     {
-        Console.WriteLine($"[DEBUG] OnGlobalHotkeyPressed: key={key}, TriggerKey={_triggerKey}, _isArmed={_isArmed}, IsToggleMode={IsToggleMode}");
         if (key == _overlayToggleKey)
         {
             _overlayViewModel.ToggleVisibility();
@@ -209,15 +209,10 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         else if (key == TriggerKey && _isArmed)
         {
-            Console.WriteLine("[DEBUG] Starting macro toggle/hold");
             if (IsToggleMode)
-            {
                 _macroService.StartToggleMode();
-            }
             else
-            {
                 _macroService.StartHoldMode();
-            }
         }
     }
 
@@ -231,19 +226,19 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnMacroStatusChanged(object? sender, bool isRunning)
     {
-        ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
-        ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
+        Dispatcher.UIThread.Post(() =>
+        {
+            ((RelayCommand)StartCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)StopCommand).NotifyCanExecuteChanged();
+        });
     }
 
     private void OnMacroError(object? sender, string error)
     {
-        try
+        Dispatcher.UIThread.Post(() =>
         {
             Status = ApplicationStatus.Stopped;
-        }
-        catch
-        {
-        }
+        });
     }
 
     private void UpdateMacroConfiguration()
@@ -263,7 +258,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void OnKeyPressed(string key)
     {
-        Console.WriteLine($"[DEBUG] OnKeyPressed: key={key}, IsCapturingTrigger={IsCapturingTriggerKey}, IsCapturingClick={IsCapturingClickKey}, _isArmed={_isArmed}, TriggerKey={_triggerKey}");
         if (IsCapturingTriggerKey)
         {
             TriggerKey = key;
@@ -290,7 +284,6 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        Console.WriteLine("[DEBUG] Start() called");
         _isArmed = true;
         _globalHotkeyService.ShouldSuppressKey = ShouldSuppressTriggerKey;
         _globalHotkeyService.SetKeyboardGrab(true);
@@ -301,7 +294,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void Stop()
     {
-        Console.WriteLine("[DEBUG] Stop() called");
         _isArmed = false;
         _globalHotkeyService.ShouldSuppressKey = null;
         _globalHotkeyService.SetKeyboardGrab(false);

@@ -166,9 +166,12 @@ public class GlobalHotkeyService : IDisposable
             {
                 SetKeyboardGrab(false);
             }
+
             _linuxCts?.Cancel();
-            _linuxListenerTask?.Wait(1000);
+
             _linuxEventStream?.Dispose();
+
+            _linuxListenerTask?.Wait(2000);
         }
         catch { }
         _linuxEventStream = null;

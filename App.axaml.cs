@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -29,6 +30,19 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try
+            {
+                if (_desktop?.MainWindow?.DataContext is MainWindowViewModel vm)
+                    vm.Stop();
+            }
+            catch { }
+
+            try { _globalHotkeyService?.Dispose(); }
+            catch { }
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _desktop = desktop;
