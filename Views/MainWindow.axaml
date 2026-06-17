@@ -83,6 +83,10 @@
             <Setter Property="Foreground" Value="#00FFFF"/>
             <Setter Property="Background" Value="#1A1A2E"/>
         </Style>
+        <Style Selector="ScrollViewer /template/ ScrollBar">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
     </Window.Styles>
 
     <Panel>

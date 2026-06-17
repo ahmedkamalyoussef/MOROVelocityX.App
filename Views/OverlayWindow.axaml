@@ -75,6 +75,7 @@
                               Margin="0,2,0,0">
                             <TextBlock Grid.Column="0"
                                        Classes="hud-fps"
+                                       IsVisible="False"
                                        Text="{Binding FpsText, StringFormat='FPS {0}'}"/>
                             <TextBlock Grid.Column="2"
                                        Classes="hud-total"

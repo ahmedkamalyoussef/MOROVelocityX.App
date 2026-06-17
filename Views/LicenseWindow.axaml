@@ -127,7 +127,7 @@
                        HorizontalAlignment="Center"
                        Cursor="Hand"
                        Margin="0,4,0,0">
-                <Run Text="عايز شهادة؟ تواصل "/>
+                <Run Text="Contact us on Telegram: "/>
                 <Run Foreground="#66DDFF" Text="@Unro0"/>
             </TextBlock>
         </StackPanel>
