@@ -19,7 +19,6 @@ public partial class App : Application
     private MacroService? _macroService;
     private StatsService? _statsService;
     private OverlayViewModel? _overlayViewModel;
-    private OverlayWindow? _overlayWindow;
     private LicenseService? _licenseService;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
 
@@ -119,30 +118,6 @@ public partial class App : Application
         mainWindow.DataContext = viewModel;
         desktop.MainWindow = mainWindow;
 
-        _overlayWindow = new OverlayWindow
-        {
-            DataContext = _overlayViewModel
-        };
-
-        _overlayViewModel.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName != nameof(OverlayViewModel.IsVisible) || _overlayWindow == null)
-                return;
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                if (_overlayViewModel.IsVisible)
-                    _overlayWindow.Show();
-                else
-                    _overlayWindow.Hide();
-            });
-        };
-
-        if (_overlayViewModel.IsVisible)
-            _overlayWindow.Show();
-        else
-            _overlayWindow.Hide();
-
         mainWindow.Opened += (_, _) =>
         {
             var handle = mainWindow.TryGetPlatformHandle()?.Handle;
@@ -169,7 +144,6 @@ public partial class App : Application
         }
         catch { }
 
-        _overlayWindow?.Close();
         _macroService?.Dispose();
         _globalHotkeyService?.Dispose();
         _statsService?.Dispose();

@@ -258,12 +258,6 @@
                                     Foreground="#FFFFFF"
                                     BorderBrush="#FF6666"/>
                         </StackPanel>
-                        <TextBlock Text="F2: Toggle Overlay  |  F3: Edit Mode"
-                                   FontSize="9"
-                                   Foreground="#00FFFF"
-                                   Opacity="0.4"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,2,0,0"/>
                         <TextBlock Name="TelegramLink"
                                    FontSize="10"
                                    Foreground="#00FFFF"

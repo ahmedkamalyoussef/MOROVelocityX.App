@@ -174,8 +174,6 @@ public partial class MainWindowViewModel : ViewModelBase
         StopCommand = new RelayCommand(Stop, CanStop);
 
         _globalHotkeyService.RegisterHotkey(_triggerKey);
-        _globalHotkeyService.RegisterAdditionalHotkey(_overlayToggleKey);
-        _globalHotkeyService.RegisterAdditionalHotkey("F3");
         _globalHotkeyService.HotkeyPressed += OnGlobalHotkeyPressed;
         _globalHotkeyService.HotkeyReleased += OnGlobalHotkeyReleased;
 
@@ -199,15 +197,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnGlobalHotkeyPressed(object? sender, string key)
     {
-        if (key == _overlayToggleKey)
-        {
-            _overlayViewModel.ToggleVisibility();
-        }
-        else if (key == "F3")
-        {
-            _overlayViewModel.ToggleInteractive();
-        }
-        else if (key == TriggerKey && _isArmed)
+        if (key == TriggerKey && _isArmed)
         {
             if (IsToggleMode)
                 _macroService.StartToggleMode();

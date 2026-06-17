@@ -69,18 +69,11 @@
                                    Grid.Row="0"
                                    Text="{Binding CpsText}"
                                    Classes="hud-cps"/>
-                        <Grid Grid.Row="1"
-                              ColumnDefinitions="Auto,20,Auto"
-                              HorizontalAlignment="Center"
-                              Margin="0,2,0,0">
-                            <TextBlock Grid.Column="0"
-                                       Classes="hud-fps"
-                                       IsVisible="False"
-                                       Text="{Binding FpsText, StringFormat='FPS {0}'}"/>
-                            <TextBlock Grid.Column="2"
-                                       Classes="hud-total"
-                                       Text="{Binding TotalClicksText, StringFormat='TOTAL {0}'}"/>
-                        </Grid>
+                        <TextBlock Grid.Row="1"
+                                   Classes="hud-total"
+                                   Text="{Binding TotalClicksText, StringFormat='TOTAL {0}'}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,2,0,0"/>
                     </Grid>
                 </Viewbox>
                 <Rectangle Classes="resize-grip" Name="ResizeGrip"
