@@ -19,6 +19,7 @@ public class MacroService : IDisposable
     }
 
     private volatile bool _isRunning;
+    private volatile bool _isMouseDownState;
     private bool _isToggleMode;
     private bool _isHoldMode;
     private volatile int _cps;
@@ -268,6 +269,7 @@ public class MacroService : IDisposable
         if (_isRunning)
             return;
 
+        _isMouseDownState = false;
         _isRunning = true;
         _macroThread = new Thread(RunMacroLoop)
         {
@@ -285,7 +287,6 @@ public class MacroService : IDisposable
             return;
 
         _isRunning = false;
-        ReleaseClickKey();
         MacroStatusChanged?.Invoke(this, false);
     }
 
@@ -305,17 +306,24 @@ public class MacroService : IDisposable
         try
         {
             var sw = Stopwatch.StartNew();
-            long nextClickTicks = sw.ElapsedTicks;
+            long nextTickTicks = sw.ElapsedTicks;
 
             while (_isRunning)
             {
-                PerformClick();
+                _isMouseDownState = !_isMouseDownState;
+
+                if (_isMouseDownState)
+                {
+                    StatsService?.RecordClick();
+                }
+
+                PerformClickHalf(_isMouseDownState);
 
                 int cps = Math.Max(1, _cps);
-                long intervalTicks = Stopwatch.Frequency / cps;
-                nextClickTicks += intervalTicks;
+                long intervalTicks = Stopwatch.Frequency / (cps * 2);
+                nextTickTicks += intervalTicks;
 
-                long remainingTicks = nextClickTicks - sw.ElapsedTicks;
+                long remainingTicks = nextTickTicks - sw.ElapsedTicks;
                 if (remainingTicks <= 0)
                     continue;
 
@@ -323,7 +331,7 @@ public class MacroService : IDisposable
                 if (sleepMs > 1)
                     Thread.Sleep((int)(sleepMs - 1));
 
-                while (_isRunning && sw.ElapsedTicks < nextClickTicks)
+                while (_isRunning && sw.ElapsedTicks < nextTickTicks)
                     Thread.SpinWait(50);
             }
         }
@@ -337,36 +345,45 @@ public class MacroService : IDisposable
                 timeEndPeriod(1);
 
             _isRunning = false;
+            ReleaseClickKey();
         }
     }
 
     private void ReleaseClickKey()
     {
-        if (!_isLinux)
-            return;
-
-        int keycode = _clickAction switch
+        if (_isWindows)
         {
-            ClickAction.Keyboard => KeyToLinuxKeycodeFromVk(_keyboardVk),
-            _ => 0
-        };
-
-        if (keycode <= 0)
-            return;
-
-        try
-        {
-            var psi = new ProcessStartInfo
+            if (_isMouseDownState)
             {
-                FileName = "ydotool",
-                Arguments = $"key {keycode}:0",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
-            Process.Start(psi);
+                _isMouseDownState = false;
+                PerformClickWindowsHalf(false);
+            }
         }
-        catch { }
+        else if (_isLinux)
+        {
+            int keycode = _clickAction switch
+            {
+                ClickAction.Keyboard => KeyToLinuxKeycodeFromVk(_keyboardVk),
+                _ => 0
+            };
+
+            if (keycode <= 0)
+                return;
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "ydotool",
+                    Arguments = $"key {keycode}:0",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                psi.EnvironmentVariables["YDOTOOL_SOCKET"] = YdotoolSocket;
+                Process.Start(psi);
+            }
+            catch { }
+        }
     }
 
     public void ReleaseKey(string key)
@@ -393,16 +410,14 @@ public class MacroService : IDisposable
         catch { }
     }
 
-    private void PerformClick()
+    private void PerformClickHalf(bool pressDown)
     {
         try
         {
-            StatsService?.RecordClick();
-
             if (_isWindows)
-                PerformClickWindows();
+                PerformClickWindowsHalf(pressDown);
             else if (_isLinux)
-                PerformClickLinux();
+                PerformClickLinuxHalf(pressDown);
         }
         catch (Exception ex)
         {
@@ -410,7 +425,7 @@ public class MacroService : IDisposable
         }
     }
 
-    private void PerformClickWindows()
+    private void PerformClickWindowsHalf(bool pressDown)
     {
         IsSimulating = true;
         try
@@ -418,16 +433,16 @@ public class MacroService : IDisposable
             switch (_clickAction)
             {
                 case ClickAction.MouseLeft:
-                    SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                    SendMouseHalf(pressDown ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP);
                     break;
                 case ClickAction.MouseRight:
-                    SendMouseClick(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
+                    SendMouseHalf(pressDown ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP);
                     break;
                 case ClickAction.MouseMiddle:
-                    SendMouseClick(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP);
+                    SendMouseHalf(pressDown ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP);
                     break;
                 case ClickAction.Keyboard:
-                    SendKeyPress(_keyboardVk);
+                    SendKeyHalf(_keyboardVk, pressDown);
                     break;
             }
         }
@@ -437,27 +452,28 @@ public class MacroService : IDisposable
         }
     }
 
-    private void PerformClickLinux()
+    private void PerformClickLinuxHalf(bool pressDown)
     {
-        string? clickArg = _clickAction switch
-        {
-            ClickAction.MouseLeft => "0xC0",
-            ClickAction.MouseRight => "0xC1",
-            ClickAction.MouseMiddle => "0xC2",
-            _ => null
-        };
-
-        if (clickArg != null)
-        {
-            RunYdotool("click", clickArg);
-            return;
-        }
-
         if (_clickAction == ClickAction.Keyboard)
         {
             int keycode = KeyToLinuxKeycodeFromVk(_keyboardVk);
             if (keycode > 0)
-                RunYdotool("key", $"{keycode}:1 {keycode}:0");
+                RunYdotool("key", $"{keycode}:{(pressDown ? 1 : 0)}");
+            return;
+        }
+
+        if (pressDown)
+        {
+            string? clickArg = _clickAction switch
+            {
+                ClickAction.MouseLeft => "0xC0",
+                ClickAction.MouseRight => "0xC1",
+                ClickAction.MouseMiddle => "0xC2",
+                _ => null
+            };
+
+            if (clickArg != null)
+                RunYdotool("click", clickArg);
         }
     }
 
@@ -482,73 +498,32 @@ public class MacroService : IDisposable
         }
     }
 
-    private void SendMouseClick(uint downFlag, uint upFlag)
+    private void SendMouseHalf(uint mouseFlag)
     {
-        var inputDown = new INPUT
+        var input = new INPUT
         {
             type = INPUT_MOUSE,
-            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = downFlag } }
+            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = mouseFlag } }
         };
-
-        var inputUp = new INPUT
-        {
-            type = INPUT_MOUSE,
-            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = upFlag } }
-        };
-
-        // Determine hold time based on CPS to prevent throttling while ensuring games catch the input
-        int cps = Math.Max(1, _cps);
-        int holdMs = Math.Max(2, Math.Min(15, 1000 / (cps * 2)));
-
-        uint resultDown = SendInput(1, new[] { inputDown }, InputSize);
-        LogSendInputResult("Mouse Down", resultDown);
-
-        Thread.Sleep(holdMs);
-
-        uint resultUp = SendInput(1, new[] { inputUp }, InputSize);
-        LogSendInputResult("Mouse Up", resultUp);
+        uint result = SendInput(1, new[] { input }, InputSize);
+        LogSendInputResult($"Mouse {mouseFlag}", result);
     }
 
-    private void SendKeyPress(byte vkCode)
+    private void SendKeyHalf(byte vkCode, bool pressDown)
     {
-        // Use KEYEVENTF_SCANCODE so that games which read hardware state via
-        // DirectInput / Raw Input (instead of the Windows message queue) will
-        // see the simulated keystroke. With VK-only injection (dwFlags = 0),
-        // those games receive nothing because the hardware key state table is
-        // not updated.
-        //
-        // Rules (per MSDN SendInput / KEYBDINPUT documentation):
-        //   - wVk   must be 0 when KEYEVENTF_SCANCODE is set.
-        //   - wScan must be the hardware Set-1 XT scan code of the key.
-        //   - For key-up:  dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP
-
         if (!VkToScanCode.TryGetValue(vkCode, out ushort scanCode))
         {
-            // No scan code available — fall back to VK injection.
-            // This still works in normal apps; games may ignore it.
-            Debug.WriteLine($"[MacroService] No scan code for VK=0x{vkCode:X2}, falling back to VK injection.");
             scanCode = 0;
         }
 
         bool useScan = scanCode != 0;
-        uint downFlags = useScan ? KEYEVENTF_SCANCODE : 0u;
-        uint upFlags   = useScan ? (KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP) : KEYEVENTF_KEYUP;
+        uint flags = 0;
+        if (useScan)
+            flags |= KEYEVENTF_SCANCODE;
+        if (!pressDown)
+            flags |= KEYEVENTF_KEYUP;
 
-        var inputDown = new INPUT
-        {
-            type = INPUT_KEYBOARD,
-            U = new InputUnion
-            {
-                ki = new KEYBDINPUT
-                {
-                    wVk   = useScan ? (ushort)0 : vkCode,  // must be 0 when using scan code
-                    wScan = scanCode,
-                    dwFlags = downFlags
-                }
-            }
-        };
-
-        var inputUp = new INPUT
+        var input = new INPUT
         {
             type = INPUT_KEYBOARD,
             U = new InputUnion
@@ -557,22 +532,13 @@ public class MacroService : IDisposable
                 {
                     wVk   = useScan ? (ushort)0 : vkCode,
                     wScan = scanCode,
-                    dwFlags = upFlags
+                    dwFlags = flags
                 }
             }
         };
 
-        // Determine hold time based on CPS to prevent throttling while ensuring games catch the input
-        int cps = Math.Max(1, _cps);
-        int holdMs = Math.Max(2, Math.Min(15, 1000 / (cps * 2)));
-
-        uint resultDown = SendInput(1, new[] { inputDown }, InputSize);
-        LogSendInputResult($"Key VK=0x{vkCode:X2} Scan=0x{scanCode:X2} Down", resultDown);
-
-        Thread.Sleep(holdMs);
-
-        uint resultUp = SendInput(1, new[] { inputUp }, InputSize);
-        LogSendInputResult($"Key VK=0x{vkCode:X2} Scan=0x{scanCode:X2} Up", resultUp);
+        uint result = SendInput(1, new[] { input }, InputSize);
+        LogSendInputResult($"Key VK=0x{vkCode:X2} Scan=0x{scanCode:X2} {(pressDown ? "Down" : "Up")}", result);
     }
 
     // -------------------------------------------------------------------------
