@@ -3,13 +3,16 @@
         xmlns:vm="using:MOROVelocityX.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="640"
         x:Class="MOROVelocityX.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/app-icon.ico"
         Title="MOROVelocityX"
-        MinWidth="400"
-        MinHeight="400"
+        Width="440"
+         MinWidth="400"
+         MinHeight="400"
+         MaxHeight="700"
+         SizeToContent="Height"
         Background="#0A0A1A"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
@@ -259,14 +262,15 @@
                                     BorderBrush="#FF6666"/>
                         </StackPanel>
                         <TextBlock Name="TelegramLink"
-                                   FontSize="10"
+                                   FontSize="11"
                                    Foreground="#00FFFF"
-                                   Opacity="0.35"
+                                   Opacity="0.45"
                                    HorizontalAlignment="Center"
                                    Cursor="Hand"
                                    Margin="0,2,0,4">
-                            <Run Text="Contact "/>
+                            <Run Text="Contact Telegram: "/>
                             <Run Foreground="#66DDFF" Text="@Unro0"/>
+                            <Run Text="  ✈"/>
                         </TextBlock>
                     </StackPanel>
                 </Border>

@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/home/kemo/Development/Work/Freelance/MOROVelocityX/MOROVelocityX.csproj": {}
+    "D:\\Project\\MOROVelocityX\\MOROVelocityX.csproj": {}
   },
   "projects": {
-    "/home/kemo/Development/Work/Freelance/MOROVelocityX/MOROVelocityX.csproj": {
+    "D:\\Project\\MOROVelocityX\\MOROVelocityX.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/kemo/Development/Work/Freelance/MOROVelocityX/MOROVelocityX.csproj",
+        "projectUniqueName": "D:\\Project\\MOROVelocityX\\MOROVelocityX.csproj",
         "projectName": "MOROVelocityX",
-        "projectPath": "/home/kemo/Development/Work/Freelance/MOROVelocityX/MOROVelocityX.csproj",
-        "packagesPath": "/home/kemo/.nuget/packages/",
-        "outputPath": "/home/kemo/Development/Work/Freelance/MOROVelocityX/obj/",
+        "projectPath": "D:\\Project\\MOROVelocityX\\MOROVelocityX.csproj",
+        "packagesPath": "C:\\Users\\mohmm\\.nuget\\packages\\",
+        "outputPath": "D:\\Project\\MOROVelocityX\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/kemo/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\mohmm\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -52,6 +52,8 @@
               "version": "[11.3.2, )"
             },
             "Avalonia.Diagnostics": {
+              "include": "None",
+              "suppressParent": "All",
               "target": "Package",
               "version": "[11.3.2, )"
             },
@@ -66,6 +68,12 @@
             "CommunityToolkit.Mvvm": {
               "target": "Package",
               "version": "[8.2.1, )"
+            },
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.28, )",
+              "autoReferenced": true
             }
           },
           "imports": [
@@ -79,12 +87,50 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.linux-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[8.0.28, 8.0.28]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[8.0.28, 8.0.28]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/home/kemo/.dotnet/sdk/8.0.421/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.422/PortableRuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "linux-x64": {
+          "#import": []
+        },
+        "win-x64": {
+          "#import": []
         }
       }
     }

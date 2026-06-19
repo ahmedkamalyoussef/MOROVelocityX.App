@@ -1,0 +1,6 @@
+obj/
+bin/
+publish_final/
+publish_new/
+*.exe
+*.dll

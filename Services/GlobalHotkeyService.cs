@@ -277,7 +277,12 @@ public class GlobalHotkeyService : IDisposable
             int vkCode = Marshal.ReadInt32(lParam);
             string keyName = VirtualKeyToString(vkCode);
 
-            if (_registeredKeys.Count > 0 && _registeredKeys.Contains(keyName))
+            // KBDLLHOOKSTRUCT flags is at offset 8.
+            // LLKHF_INJECTED (0x10) and LLKHF_LOWER_IL_INJECTED (0x02) indicate simulated input.
+            int flags = Marshal.ReadInt32(lParam, 8);
+            bool isInjected = (flags & 0x10) != 0 || (flags & 0x02) != 0;
+
+            if (!isInjected && _registeredKeys.Count > 0 && _registeredKeys.Contains(keyName))
             {
                 if (wParam == (IntPtr)0x0100)
                 {

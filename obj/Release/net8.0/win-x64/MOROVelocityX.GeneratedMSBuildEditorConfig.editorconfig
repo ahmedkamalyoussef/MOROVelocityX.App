@@ -19,18 +19,18 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = MOROVelocityX
-build_property.ProjectDir = /home/kemo/Development/Work/Freelance/MOROVelocityX/
+build_property.ProjectDir = D:\Project\MOROVelocityX\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 
-[/home/kemo/Development/Work/Freelance/MOROVelocityX/App.axaml]
+[D:/Project/MOROVelocityX/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[/home/kemo/Development/Work/Freelance/MOROVelocityX/Views/LicenseWindow.axaml]
+[D:/Project/MOROVelocityX/Views/LicenseWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[/home/kemo/Development/Work/Freelance/MOROVelocityX/Views/MainWindow.axaml]
+[D:/Project/MOROVelocityX/Views/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[/home/kemo/Development/Work/Freelance/MOROVelocityX/Views/OverlayWindow.axaml]
+[D:/Project/MOROVelocityX/Views/OverlayWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
