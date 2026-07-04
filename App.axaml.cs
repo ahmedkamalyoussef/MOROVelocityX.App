@@ -16,7 +16,8 @@ namespace MOROVelocityX;
 public partial class App : Application
 {
     private GlobalHotkeyService? _globalHotkeyService;
-    private MacroService? _macroService;
+    private MacroService? _macroService1;
+    private MacroService? _macroService2;
     private StatsService? _statsService;
     private OverlayViewModel? _overlayViewModel;
     private LicenseService? _licenseService;
@@ -101,7 +102,11 @@ public partial class App : Application
 
         _statsService = new StatsService();
         _globalHotkeyService = new GlobalHotkeyService();
-        _macroService = new MacroService
+        _macroService1 = new MacroService
+        {
+            StatsService = _statsService
+        };
+        _macroService2 = new MacroService
         {
             StatsService = _statsService
         };
@@ -111,7 +116,8 @@ public partial class App : Application
         var mainWindow = new MainWindow();
         var viewModel = new MainWindowViewModel(
             _globalHotkeyService,
-            _macroService,
+            _macroService1,
+            _macroService2,
             _overlayViewModel,
             _licenseService,
             validation);
@@ -144,9 +150,12 @@ public partial class App : Application
         }
         catch { }
 
-        _macroService?.Dispose();
+        _macroService1?.Dispose();
+        _macroService2?.Dispose();
         _globalHotkeyService?.Dispose();
         _statsService?.Dispose();
+        
+        Environment.Exit(0);
     }
 
     private void DisableAvaloniaDataAnnotationValidation()

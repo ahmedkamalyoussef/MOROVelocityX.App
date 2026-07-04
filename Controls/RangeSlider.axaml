@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MOROVelocityX.Controls.RangeSlider">
+
+    <UserControl.Styles>
+        <!-- Style both sliders to share the same visual track -->
+        <Style Selector="Slider.range-thumb">
+            <Setter Property="Foreground" Value="#00FFFF"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto">
+        <!-- Display: Min – Max CPS -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="0,0,0,4">
+            <TextBlock Name="MinText" Foreground="#FFFFFF" FontSize="16" FontWeight="Medium"/>
+            <TextBlock Text="–" Foreground="#00FFFF" FontSize="16" FontWeight="SemiBold"/>
+            <TextBlock Name="MaxText" Foreground="#FFFFFF" FontSize="16" FontWeight="Medium"/>
+            <TextBlock Text="CPS" Foreground="#00FFFF" FontSize="12" VerticalAlignment="Center" Opacity="0.6"/>
+        </StackPanel>
+
+        <!-- Overlaid sliders on a shared track -->
+        <Grid Grid.Row="1" Height="32">
+            <!-- Track background -->
+            <Border Background="#1A1A2E" CornerRadius="4" Height="6"
+                    VerticalAlignment="Center" Margin="10,0"/>
+
+            <!-- Active range highlight -->
+            <Canvas Name="RangeCanvas" Height="6" VerticalAlignment="Center" Margin="10,0"
+                    IsHitTestVisible="False">
+                <Border Name="RangeHighlight" Background="#00BFFF80" CornerRadius="3" Height="6"/>
+            </Canvas>
+
+            <!-- Min slider (bottom layer — rendered first) -->
+            <Slider Name="MinSlider" Classes="range-thumb"
+                    Minimum="1" Maximum="500"
+                    TickFrequency="1" IsSnapToTickEnabled="True"
+                    VerticalAlignment="Center"
+                    ZIndex="1"/>
+
+            <!-- Max slider (top layer — rendered second) -->
+            <Slider Name="MaxSlider" Classes="range-thumb"
+                    Minimum="1" Maximum="500"
+                    TickFrequency="1" IsSnapToTickEnabled="True"
+                    VerticalAlignment="Center"
+                    ZIndex="0"/>
+        </Grid>
+    </Grid>
+</UserControl>
