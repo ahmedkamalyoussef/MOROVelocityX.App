@@ -22,7 +22,9 @@ public class MacroService : IDisposable
     private volatile bool _isMouseDownState;
     private bool _isToggleMode;
     private bool _isHoldMode;
-    private volatile int _cps;
+    private volatile int _cpsMin;
+    private volatile int _cpsMax;
+    private readonly Random _rng = new();
     private ClickAction _clickAction;
     private byte _keyboardVk;
     private Thread? _macroThread;
@@ -52,7 +54,8 @@ public class MacroService : IDisposable
     {
         _isToggleMode = true;
         _isHoldMode = false;
-        _cps = 10;
+        _cpsMin = 8;
+        _cpsMax = 12;
         _clickAction = ClickAction.MouseLeft;
         _isWindows = OperatingSystem.IsWindows();
         _isLinux = OperatingSystem.IsLinux();
@@ -215,13 +218,15 @@ public class MacroService : IDisposable
         { 0x20, 0x39 }, // Space
     };
 
-    public void Configure(bool isToggleMode, int cps, string clickKey)
+    public void Configure(bool isToggleMode, int cpsMin, int cpsMax, string clickKey)
     {
         lock (_lock)
         {
             _isToggleMode = isToggleMode;
             _isHoldMode = !isToggleMode;
-            _cps = Math.Clamp(cps, 1, 500);
+            _cpsMin = Math.Clamp(cpsMin, 1, 500);
+            _cpsMax = Math.Clamp(cpsMax, 1, 500);
+            if (_cpsMax < _cpsMin) _cpsMax = _cpsMin;
             UpdateClickAction(clickKey);
         }
     }
@@ -306,33 +311,29 @@ public class MacroService : IDisposable
         try
         {
             var sw = Stopwatch.StartNew();
-            long nextTickTicks = sw.ElapsedTicks;
 
             while (_isRunning)
             {
-                _isMouseDownState = !_isMouseDownState;
+                // Pick a random CPS once per full click cycle (down + up)
+                // so both halves share the same timing.
+                int lo = _cpsMin;
+                int hi = _cpsMax;
+                int cps = lo >= hi ? Math.Max(1, lo) : _rng.Next(lo, hi + 1);
+                long halfIntervalTicks = Stopwatch.Frequency / (cps * 2);
 
-                if (_isMouseDownState)
-                {
-                    StatsService?.RecordClick();
-                }
+                // --- Mouse/key DOWN ---
+                _isMouseDownState = true;
+                StatsService?.RecordClick();
+                PerformClickHalf(true);
 
-                PerformClickHalf(_isMouseDownState);
+                WaitPrecise(sw, halfIntervalTicks);
+                if (!_isRunning) break;
 
-                int cps = Math.Max(1, _cps);
-                long intervalTicks = Stopwatch.Frequency / (cps * 2);
-                nextTickTicks += intervalTicks;
+                // --- Mouse/key UP ---
+                _isMouseDownState = false;
+                PerformClickHalf(false);
 
-                long remainingTicks = nextTickTicks - sw.ElapsedTicks;
-                if (remainingTicks <= 0)
-                    continue;
-
-                long sleepMs = remainingTicks * 1000 / Stopwatch.Frequency;
-                if (sleepMs > 1)
-                    Thread.Sleep((int)(sleepMs - 1));
-
-                while (_isRunning && sw.ElapsedTicks < nextTickTicks)
-                    Thread.SpinWait(50);
+                WaitPrecise(sw, halfIntervalTicks);
             }
         }
         catch (Exception ex)
@@ -347,6 +348,26 @@ public class MacroService : IDisposable
             _isRunning = false;
             ReleaseClickKey();
         }
+    }
+
+    /// <summary>
+    /// High-precision wait: sleeps for the bulk of the interval, then spin-waits
+    /// for the last sub-millisecond. The deadline is computed from the current
+    /// time, so each wait is independent (no accumulated drift).
+    /// </summary>
+    private void WaitPrecise(Stopwatch sw, long durationTicks)
+    {
+        long deadline = sw.ElapsedTicks + durationTicks;
+
+        long remainingTicks = deadline - sw.ElapsedTicks;
+        if (remainingTicks <= 0) return;
+
+        long sleepMs = remainingTicks * 1000 / Stopwatch.Frequency;
+        if (sleepMs > 1)
+            Thread.Sleep((int)(sleepMs - 1));
+
+        while (_isRunning && sw.ElapsedTicks < deadline)
+            Thread.SpinWait(50);
     }
 
     private void ReleaseClickKey()

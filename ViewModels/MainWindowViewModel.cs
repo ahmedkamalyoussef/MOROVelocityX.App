@@ -21,7 +21,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _overlayToggleKey = "F2";
     private bool _isToggleMode = true;
     private bool _isHoldMode = false;
-    private int _cps = 10;
+    private int _cpsMin = 8;
+    private int _cpsMax = 12;
     private ApplicationStatus _status = ApplicationStatus.Ready;
     private bool _isCapturingTriggerKey = false;
     private bool _isCapturingClickKey = false;
@@ -110,12 +111,28 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public int CPS
+    public int CpsMin
     {
-        get => _cps;
+        get => _cpsMin;
         set
         {
-            if (SetProperty(ref _cps, value))
+            int clamped = Math.Clamp(value, 1, 500);
+            if (clamped > _cpsMax) clamped = _cpsMax;
+            if (SetProperty(ref _cpsMin, clamped))
+            {
+                UpdateMacroConfiguration();
+            }
+        }
+    }
+
+    public int CpsMax
+    {
+        get => _cpsMax;
+        set
+        {
+            int clamped = Math.Clamp(value, 1, 500);
+            if (clamped < _cpsMin) clamped = _cpsMin;
+            if (SetProperty(ref _cpsMax, clamped))
             {
                 UpdateMacroConfiguration();
             }
@@ -233,7 +250,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void UpdateMacroConfiguration()
     {
-        _macroService.Configure(IsToggleMode, CPS, ClickKey);
+        _macroService.Configure(IsToggleMode, CpsMin, CpsMax, ClickKey);
     }
 
     private void CaptureTriggerKey()

@@ -114,12 +114,12 @@
           "Avalonia.Remote.Protocol": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         }
@@ -152,12 +152,12 @@
           "Avalonia.Themes.Simple": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         }
@@ -274,12 +274,12 @@
           "Avalonia": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         }
@@ -471,12 +471,6 @@
         },
         "runtime": {
           "lib/net5.0/MicroCom.Runtime.dll": {}
-        }
-      },
-      "Microsoft.NET.ILLink.Tasks/8.0.27": {
-        "type": "package",
-        "build": {
-          "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
       "SkiaSharp/2.88.9": {
@@ -705,12 +699,12 @@
           "Avalonia.Remote.Protocol": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         }
@@ -743,12 +737,12 @@
           "Avalonia.Themes.Simple": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         }
@@ -859,12 +853,12 @@
           "Avalonia": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         }
@@ -993,12 +987,6 @@
         },
         "runtime": {
           "lib/net5.0/MicroCom.Runtime.dll": {}
-        }
-      },
-      "Microsoft.NET.ILLink.Tasks/8.0.27": {
-        "type": "package",
-        "build": {
-          "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
       "SkiaSharp/2.88.9": {
@@ -1195,12 +1183,12 @@
           "Avalonia.Remote.Protocol": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
             "related": ".xml"
           }
         }
@@ -1233,12 +1221,12 @@
           "Avalonia.Themes.Simple": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         }
@@ -1349,12 +1337,12 @@
           "Avalonia": "11.3.2"
         },
         "compile": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/_._": {
+          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         }
@@ -1483,12 +1471,6 @@
         },
         "runtime": {
           "lib/net5.0/MicroCom.Runtime.dll": {}
-        }
-      },
-      "Microsoft.NET.ILLink.Tasks/8.0.27": {
-        "type": "package",
-        "build": {
-          "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
       "SkiaSharp/2.88.9": {
@@ -2213,57 +2195,6 @@
         "microcom.runtime.nuspec"
       ]
     },
-    "Microsoft.NET.ILLink.Tasks/8.0.27": {
-      "sha512": "rQi9TxifHRnXP7lVRZH05DxD2/XGbJp12q0ozcbrlBlBnyyzssFTH/2vLhtKWUp2CT1qVscTrcYTFiwTyKPKRg==",
-      "type": "package",
-      "path": "microsoft.net.illink.tasks/8.0.27",
-      "hasTools": true,
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "LICENSE.TXT",
-        "Sdk/Sdk.props",
-        "THIRD-PARTY-NOTICES.TXT",
-        "analyzers/dotnet/cs/ILLink.CodeFixProvider.dll",
-        "analyzers/dotnet/cs/ILLink.RoslynAnalyzer.dll",
-        "build/Microsoft.NET.ILLink.Analyzers.props",
-        "build/Microsoft.NET.ILLink.Tasks.props",
-        "build/Microsoft.NET.ILLink.targets",
-        "microsoft.net.illink.tasks.8.0.27.nupkg.sha512",
-        "microsoft.net.illink.tasks.nuspec",
-        "tools/net472/ILLink.Tasks.dll",
-        "tools/net472/ILLink.Tasks.dll.config",
-        "tools/net472/Mono.Cecil.Mdb.dll",
-        "tools/net472/Mono.Cecil.Pdb.dll",
-        "tools/net472/Mono.Cecil.Rocks.dll",
-        "tools/net472/Mono.Cecil.dll",
-        "tools/net472/Sdk/Sdk.props",
-        "tools/net472/System.Buffers.dll",
-        "tools/net472/System.Collections.Immutable.dll",
-        "tools/net472/System.Memory.dll",
-        "tools/net472/System.Numerics.Vectors.dll",
-        "tools/net472/System.Reflection.Metadata.dll",
-        "tools/net472/System.Runtime.CompilerServices.Unsafe.dll",
-        "tools/net472/build/Microsoft.NET.ILLink.Analyzers.props",
-        "tools/net472/build/Microsoft.NET.ILLink.Tasks.props",
-        "tools/net472/build/Microsoft.NET.ILLink.targets",
-        "tools/net8.0/ILLink.Tasks.deps.json",
-        "tools/net8.0/ILLink.Tasks.dll",
-        "tools/net8.0/Mono.Cecil.Mdb.dll",
-        "tools/net8.0/Mono.Cecil.Pdb.dll",
-        "tools/net8.0/Mono.Cecil.Rocks.dll",
-        "tools/net8.0/Mono.Cecil.dll",
-        "tools/net8.0/Sdk/Sdk.props",
-        "tools/net8.0/build/Microsoft.NET.ILLink.Analyzers.props",
-        "tools/net8.0/build/Microsoft.NET.ILLink.Tasks.props",
-        "tools/net8.0/build/Microsoft.NET.ILLink.targets",
-        "tools/net8.0/illink.deps.json",
-        "tools/net8.0/illink.dll",
-        "tools/net8.0/illink.runtimeconfig.json",
-        "useSharedDesignerContext.txt"
-      ]
-    },
     "SkiaSharp/2.88.9": {
       "sha512": "3MD5VHjXXieSHCleRLuaTXmL2pD0mB7CcOB1x2kA1I4bhptf4e3R27iM93264ZYuAq6mkUyX5XbcxnZvMJYc1Q==",
       "type": "package",
@@ -2494,8 +2425,7 @@
       "Avalonia.Diagnostics >= 11.3.2",
       "Avalonia.Fonts.Inter >= 11.3.2",
       "Avalonia.Themes.Fluent >= 11.3.2",
-      "CommunityToolkit.Mvvm >= 8.2.1",
-      "Microsoft.NET.ILLink.Tasks >= 8.0.27"
+      "CommunityToolkit.Mvvm >= 8.2.1"
     ]
   },
   "packageFolders": {
@@ -2549,8 +2479,6 @@
             "version": "[11.3.2, )"
           },
           "Avalonia.Diagnostics": {
-            "include": "None",
-            "suppressParent": "All",
             "target": "Package",
             "version": "[11.3.2, )"
           },
@@ -2565,12 +2493,6 @@
           "CommunityToolkit.Mvvm": {
             "target": "Package",
             "version": "[8.2.1, )"
-          },
-          "Microsoft.NET.ILLink.Tasks": {
-            "suppressParent": "All",
-            "target": "Package",
-            "version": "[8.0.27, )",
-            "autoReferenced": true
           }
         },
         "imports": [
@@ -2591,10 +2513,6 @@
           },
           {
             "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-            "version": "[8.0.27, 8.0.27]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Crossgen2.linux-x64",
             "version": "[8.0.27, 8.0.27]"
           },
           {

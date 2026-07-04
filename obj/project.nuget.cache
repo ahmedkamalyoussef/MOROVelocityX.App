@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "z3UqDDUJAbg=",
+  "dgSpecHash": "4HeUZKhaYYQ=",
   "success": true,
   "projectFilePath": "/home/kemo/Development/Work/Freelance/MOROVelocityX/MOROVelocityX.csproj",
   "expectedPackageFiles": [
@@ -26,7 +26,6 @@
     "/home/kemo/.nuget/packages/harfbuzzsharp.nativeassets.webassembly/8.3.1.1/harfbuzzsharp.nativeassets.webassembly.8.3.1.1.nupkg.sha512",
     "/home/kemo/.nuget/packages/harfbuzzsharp.nativeassets.win32/8.3.1.1/harfbuzzsharp.nativeassets.win32.8.3.1.1.nupkg.sha512",
     "/home/kemo/.nuget/packages/microcom.runtime/0.11.0/microcom.runtime.0.11.0.nupkg.sha512",
-    "/home/kemo/.nuget/packages/microsoft.net.illink.tasks/8.0.27/microsoft.net.illink.tasks.8.0.27.nupkg.sha512",
     "/home/kemo/.nuget/packages/skiasharp/2.88.9/skiasharp.2.88.9.nupkg.sha512",
     "/home/kemo/.nuget/packages/skiasharp.nativeassets.linux/2.88.9/skiasharp.nativeassets.linux.2.88.9.nupkg.sha512",
     "/home/kemo/.nuget/packages/skiasharp.nativeassets.macos/2.88.9/skiasharp.nativeassets.macos.2.88.9.nupkg.sha512",
@@ -38,7 +37,6 @@
     "/home/kemo/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/8.0.27/microsoft.netcore.app.runtime.linux-x64.8.0.27.nupkg.sha512",
     "/home/kemo/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/8.0.27/microsoft.aspnetcore.app.runtime.win-x64.8.0.27.nupkg.sha512",
     "/home/kemo/.nuget/packages/microsoft.aspnetcore.app.runtime.linux-x64/8.0.27/microsoft.aspnetcore.app.runtime.linux-x64.8.0.27.nupkg.sha512",
-    "/home/kemo/.nuget/packages/microsoft.netcore.app.crossgen2.linux-x64/8.0.27/microsoft.netcore.app.crossgen2.linux-x64.8.0.27.nupkg.sha512",
     "/home/kemo/.nuget/packages/microsoft.netcore.app.host.win-x64/8.0.27/microsoft.netcore.app.host.win-x64.8.0.27.nupkg.sha512"
   ],
   "logs": []
